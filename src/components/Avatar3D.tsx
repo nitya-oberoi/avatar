@@ -1,416 +1,176 @@
 /**
- * Avatar3D
- * A procedural 3D cartoon avatar built from Three.js primitives and driven
- * by the shared avatar config. Rotatable via OrbitControls.
+ * Avatar3D — Path B: in-app 3D avatar customizer (slot compositor).
  *
- * This is intentionally asset-free (no GLB models) so it works out of the
- * box. Every config field maps to geometry/material here, and real rigged
- * models can later replace these primitives behind the same data model.
+ * The Quaternius CC0 packs give whole themed characters that all share one
+ * 62-bone skeleton, each exposing named parts (_Head / _Body / _Legs|Pants /
+ * _Feet). We compose across them: the OUTFIT panel picks the character that
+ * supplies top/bottom/shoes; the HAIR panel picks a character whose _Head
+ * (baked hairstyle + face) is shown. We render both cloned characters, hide
+ * the meshes we don't want from each, and drive both animation mixers off the
+ * same clock so the grafted head stays locked to the body. Everything is
+ * toon-shaded and tinted live from the palette.
  *
- * Must be loaded with next/dynamic({ ssr: false }) — it touches WebGL.
+ * Must be loaded with next/dynamic({ ssr: false }) — WebGL.
  */
 
-import React from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows, RoundedBox } from '@react-three/drei';
+import React, { Suspense, useEffect, useMemo, useRef } from 'react';
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, ContactShadows, useGLTF } from '@react-three/drei';
+import { SkeletonUtils } from 'three-stdlib';
 import { useAvatarStore } from '@stores/avatarStore';
-import { AvatarConfig } from '@apptypes/avatar';
+import { AvatarColors } from '@apptypes/avatar';
 
-const HEAD_Y = 1.35;
-const HEAD_R = 1;
+type Gender = 'male' | 'female';
 
-/* ----------------------------- Head ------------------------------ */
-
-const HEAD_SCALES: Record<string, [number, number, number]> = {
-  head_round: [1, 1, 1],
-  head_oval: [0.9, 1.14, 0.95],
-  head_heart: [1.08, 1.0, 0.98],
-  head_diamond: [0.94, 1.1, 0.9],
+// Which character supplies the clothes (body + legs + feet) per outfit id.
+const OUTFIT_CHAR: Record<Gender, Record<string, string>> = {
+  male: { casual: 'Casual_2', formal: 'Suit', sporty: 'Casual_Hoodie', magical: 'King', explorer: 'Adventurer', futuristic: 'Spacesuit', vintage: 'Farmer', boho: 'Worker' },
+  female: { casual: 'Casual', formal: 'Formal', sporty: 'Adventurer', magical: 'Medieval', explorer: 'Soldier', futuristic: 'SciFi', vintage: 'Punk', boho: 'Punk' },
+};
+// Which character supplies the head (baked hairstyle) per hair id.
+const HEAD_CHAR: Record<Gender, Record<string, string>> = {
+  male: { short: 'Casual_2', long: 'Punk', bob: 'Casual_Hoodie', wavy: 'Beach', bun: 'King', spiky: 'Swat', braids: 'Farmer', curly: 'Worker' },
+  female: { short: 'Casual', long: 'Adventurer', bob: 'Formal', wavy: 'SciFi', bun: 'Formal', braids: 'Medieval', spiky: 'Punk', curly: 'Soldier' },
+};
+// Body-type → non-uniform scale on the whole avatar (shape + size). Applied to
+// both clones together so the grafted head stays aligned with the body.
+const BODY_SCALE: Record<string, [number, number, number]> = {
+  body_standard: [1, 1, 1],
+  body_slim: [0.9, 1.02, 0.9],
+  body_athletic: [1.09, 1.0, 1.0],
+  body_curvy: [1.13, 0.98, 1.08],
+};
+const DEFAULT_CHAR: Record<Gender, string> = { male: 'Casual_2', female: 'Casual' };
+const ALL_CHARS: Record<Gender, string[]> = {
+  male: ['Adventurer', 'Beach', 'Casual_2', 'Casual_Hoodie', 'Farmer', 'King', 'Punk', 'Spacesuit', 'Suit', 'Swat', 'Worker'],
+  female: ['Adventurer', 'Casual', 'Formal', 'Medieval', 'Punk', 'SciFi', 'Soldier'],
 };
 
-const Head: React.FC<{ shape: string; skin: string }> = ({ shape, skin }) => {
-  if (shape === 'head_square') {
-    return (
-      <RoundedBox
-        args={[1.7, 1.95, 1.7]}
-        radius={0.5}
-        smoothness={6}
-        position={[0, HEAD_Y, 0]}
-      >
-        <meshStandardMaterial color={skin} roughness={0.7} />
-      </RoundedBox>
-    );
+const path = (g: Gender, c: string) => `/models/parts/${g}/${c}.gltf`;
+const strip = (id: string) => id.replace(/^[a-z]+_/, '');
+
+// 3-step toon ramp shared by every material.
+const gradientMap = new THREE.DataTexture(new Uint8Array([90, 170, 255]), 3, 1, THREE.RedFormat);
+gradientMap.needsUpdate = true;
+
+type Slot = 'head' | 'body' | 'legs' | 'feet' | null;
+const nameToSlot = (name: string): Slot => {
+  const n = name.toLowerCase();
+  if (n.includes('head')) return 'head';
+  if (n.includes('body')) return 'body';
+  if (n.includes('legs') || n.includes('pants')) return 'legs';
+  if (n.includes('feet')) return 'feet';
+  return null; // Backpack / Pistol / Sword, or a bare "Cube.NNN" primitive
+};
+// Multi-material parts load as a GROUP named "<Char>_Body" whose child meshes
+// are bare "Cube.NNN"; single-material parts are a directly-named mesh. So walk
+// up the ancestry to find the descriptive part name.
+const slotOf = (o: THREE.Object3D): Slot => {
+  let n: THREE.Object3D | null = o;
+  while (n) {
+    const s = nameToSlot(n.name);
+    if (s) return s;
+    n = n.parent;
   }
-  const scale = HEAD_SCALES[shape] ?? HEAD_SCALES.head_round;
+  return null;
+};
+
+const colorFor = (mat: string, slot: string, c: AvatarColors): string | null => {
+  const m = mat.toLowerCase();
+  if (m.includes('skin')) return c.skinTone;
+  if (m.includes('hair') || m.includes('eyebrow')) return c.hairColor;
+  if (m.includes('eye')) return c.eyeColor;
+  if (slot === 'head') return null; // leave remaining head detail as-authored
+  if (slot === 'body') return c.outfitPrimary;
+  if (slot === 'legs') return c.outfitSecondary;
+  if (slot === 'feet') return c.accentColor;
+  return null;
+};
+
+// toon-convert + tint every mesh in a clone, keeping only `keep` slots visible.
+const dressClone = (root: THREE.Object3D, keep: (s: string | null) => boolean, colors: AvatarColors) => {
+  root.traverse((o) => {
+    const mesh = o as THREE.SkinnedMesh;
+    if (!(mesh as any).isSkinnedMesh) return;
+    const slot = slotOf(mesh);
+    mesh.visible = keep(slot);
+    if (!mesh.visible) return;
+    const conv = (m: THREE.Material): THREE.Material => {
+      const toon = (m as any).isMeshToonMaterial
+        ? (m as THREE.MeshToonMaterial)
+        : Object.assign(new THREE.MeshToonMaterial({ gradientMap }), {
+            name: m.name,
+            color: ((m as any).color as THREE.Color | undefined)?.clone() ?? new THREE.Color('#fff'),
+          });
+      const hex = colorFor(toon.name, slot ?? '', colors);
+      if (hex) toon.color.set(hex);
+      return toon;
+    };
+    mesh.material = Array.isArray(mesh.material) ? mesh.material.map(conv) : conv(mesh.material);
+  });
+  const head = root.getObjectByName('Head'); // chibi proportions
+  if (head) head.scale.setScalar(1.3);
+};
+
+const makeMixer = (root: THREE.Object3D, clips: THREE.AnimationClip[]) => {
+  const mixer = new THREE.AnimationMixer(root);
+  const clip = THREE.AnimationClip.findByName(clips, 'Idle') || clips.find((c) => /idle/i.test(c.name)) || clips[0];
+  if (clip) mixer.clipAction(clip).play();
+  return mixer;
+};
+
+function Model() {
+  const gender = useAvatarStore((s) => s.config.selection.gender) as Gender;
+  const colors = useAvatarStore((s) => s.config.colors);
+  const outfit = useAvatarStore((s) => s.config.selection.outfit);
+  const hair = useAvatarStore((s) => s.config.selection.hair);
+  const body = useAvatarStore((s) => s.config.selection.body);
+
+  const chars = ALL_CHARS[gender];
+  const outfitName = chars.includes(OUTFIT_CHAR[gender][strip(outfit)]) ? OUTFIT_CHAR[gender][strip(outfit)] : DEFAULT_CHAR[gender];
+  const headName = chars.includes(HEAD_CHAR[gender][strip(hair)]) ? HEAD_CHAR[gender][strip(hair)] : outfitName;
+
+  const outfitG = useGLTF(path(gender, outfitName));
+  const headG = useGLTF(path(gender, headName));
+
+  // Body clone: everything except the head. Head clone: only the head.
+  const bodyClone = useMemo(() => SkeletonUtils.clone(outfitG.scene) as THREE.Object3D, [outfitG]);
+  const headClone = useMemo(() => SkeletonUtils.clone(headG.scene) as THREE.Object3D, [headG]);
+
+  useEffect(() => { dressClone(bodyClone, (s) => s !== null && s !== 'head', colors); }, [bodyClone, colors]);
+  useEffect(() => { dressClone(headClone, (s) => s === 'head', colors); }, [headClone, colors]);
+
+  // Two mixers, same clock → grafted head stays locked to the body.
+  const mixers = useMemo(
+    () => [makeMixer(bodyClone, outfitG.animations), makeMixer(headClone, headG.animations)],
+    [bodyClone, headClone, outfitG.animations, headG.animations],
+  );
+  useFrame((_, dt) => mixers.forEach((m) => m.update(dt)));
+
+  const scale = BODY_SCALE[body] ?? [1, 1, 1];
   return (
-    <mesh position={[0, HEAD_Y, 0]} scale={scale}>
-      <sphereGeometry args={[HEAD_R, 64, 64]} />
-      <meshStandardMaterial color={skin} roughness={0.7} />
-    </mesh>
-  );
-};
-
-const Ears: React.FC<{ skin: string }> = ({ skin }) => (
-  <>
-    {[-1, 1].map((s) => (
-      <mesh key={s} position={[s * 0.95, HEAD_Y - 0.05, 0.05]} scale={[0.5, 0.7, 0.5]}>
-        <sphereGeometry args={[0.28, 24, 24]} />
-        <meshStandardMaterial color={skin} roughness={0.7} />
-      </mesh>
-    ))}
-  </>
-);
-
-/* ----------------------------- Eyes ------------------------------ */
-
-const Eye: React.FC<{ x: number; eyeColor: string }> = ({ x, eyeColor }) => (
-  <group position={[x, HEAD_Y + 0.12, 0.74]}>
-    {/* white */}
-    <mesh scale={[0.85, 1, 0.7]}>
-      <sphereGeometry args={[0.27, 32, 32]} />
-      <meshStandardMaterial color="#ffffff" roughness={0.25} />
-    </mesh>
-    {/* iris */}
-    <mesh position={[0, 0, 0.15]}>
-      <sphereGeometry args={[0.14, 32, 32]} />
-      <meshStandardMaterial color={eyeColor} roughness={0.35} />
-    </mesh>
-    {/* pupil */}
-    <mesh position={[0, 0, 0.23]}>
-      <sphereGeometry args={[0.075, 24, 24]} />
-      <meshStandardMaterial color="#241d18" />
-    </mesh>
-    {/* catchlight */}
-    <mesh position={[-0.05, 0.07, 0.28]}>
-      <sphereGeometry args={[0.035, 16, 16]} />
-      <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
-    </mesh>
-  </group>
-);
-
-const Brow: React.FC<{ x: number; tilt: number; color: string }> = ({ x, tilt, color }) => (
-  <mesh position={[x, HEAD_Y + 0.4, 0.82]} rotation={[0, 0, tilt]}>
-    <boxGeometry args={[0.32, 0.07, 0.08]} />
-    <meshStandardMaterial color={color} roughness={0.8} />
-  </mesh>
-);
-
-/* ----------------------------- Mouth ----------------------------- */
-
-const Mouth: React.FC<{ expr: string }> = ({ expr }) => {
-  const y = HEAD_Y - 0.42;
-  const z = 0.82;
-  const lip = '#b5485f';
-
-  if (expr === 'expr_surprised') {
-    return (
-      <mesh position={[0, y, z]}>
-        <sphereGeometry args={[0.12, 20, 20]} />
-        <meshStandardMaterial color="#5c2b38" />
-      </mesh>
-    );
-  }
-  if (expr === 'expr_happy' || expr === 'expr_love' || expr === 'expr_cool' || expr === 'expr_wink') {
-    // smile: bottom half of a torus ring
-    return (
-      <mesh position={[0, y + 0.05, z]} rotation={[Math.PI / 2, Math.PI, 0]}>
-        <torusGeometry args={[0.2, 0.045, 12, 24, Math.PI]} />
-        <meshStandardMaterial color={lip} roughness={0.5} />
-      </mesh>
-    );
-  }
-  if (expr === 'expr_sad' || expr === 'expr_angry') {
-    // frown: top half of torus
-    return (
-      <mesh position={[0, y - 0.05, z]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.18, 0.04, 12, 24, Math.PI]} />
-        <meshStandardMaterial color="#5c2b38" roughness={0.6} />
-      </mesh>
-    );
-  }
-  // neutral
-  return (
-    <mesh position={[0, y, z]}>
-      <boxGeometry args={[0.32, 0.055, 0.06]} />
-      <meshStandardMaterial color="#5c2b38" />
-    </mesh>
-  );
-};
-
-const Nose: React.FC<{ skin: string }> = ({ skin }) => (
-  <mesh position={[0, HEAD_Y - 0.12, 0.92]} scale={[0.7, 0.8, 0.7]}>
-    <sphereGeometry args={[0.1, 20, 20]} />
-    <meshStandardMaterial color={skin} roughness={0.7} />
-  </mesh>
-);
-
-const Blush: React.FC = () => (
-  <>
-    {[-1, 1].map((s) => (
-      <mesh key={s} position={[s * 0.5, HEAD_Y - 0.18, 0.78]} scale={[1, 0.7, 0.4]}>
-        <sphereGeometry args={[0.16, 20, 20]} />
-        <meshStandardMaterial color="#ff8fa6" transparent opacity={0.4} roughness={0.9} />
-      </mesh>
-    ))}
-  </>
-);
-
-/* ----------------------------- Hair ------------------------------ */
-
-const Hair: React.FC<{ style: string; color: string }> = ({ style, color }) => {
-  const mat = <meshStandardMaterial color={color} roughness={0.85} />;
-
-  // Top dome cap shared by most styles (covers crown, above the eyes).
-  const cap = (
-    <mesh position={[0, HEAD_Y + 0.05, -0.02]} scale={[1.08, 1.08, 1.08]}>
-      <sphereGeometry args={[HEAD_R, 48, 48, 0, Math.PI * 2, 0, 1.15]} />
-      {mat}
-    </mesh>
-  );
-
-  const backMass = (sy: number, y: number) => (
-    <mesh position={[0, HEAD_Y + y, -0.35]} scale={[1.05, sy, 0.75]}>
-      <sphereGeometry args={[HEAD_R, 40, 40]} />
-      {mat}
-    </mesh>
-  );
-
-  switch (style) {
-    case 'hair_short':
-      return cap;
-    case 'hair_long':
-      return (
-        <group>
-          {backMass(1.35, -0.55)}
-          {cap}
-        </group>
-      );
-    case 'hair_bob':
-      return (
-        <group>
-          {backMass(1.0, -0.15)}
-          {cap}
-        </group>
-      );
-    case 'hair_wavy':
-      return (
-        <group>
-          {backMass(1.25, -0.4)}
-          {cap}
-        </group>
-      );
-    case 'hair_bun':
-      return (
-        <group>
-          {cap}
-          <mesh position={[0, HEAD_Y + 1.05, -0.1]}>
-            <sphereGeometry args={[0.32, 24, 24]} />
-            {mat}
-          </mesh>
-        </group>
-      );
-    case 'hair_spiky':
-      return (
-        <group>
-          {cap}
-          {[-0.5, -0.2, 0.1, 0.4].map((x, i) => (
-            <mesh key={i} position={[x, HEAD_Y + 0.95, 0]} rotation={[0, 0, (i - 1.5) * 0.25]}>
-              <coneGeometry args={[0.16, 0.5, 12]} />
-              {mat}
-            </mesh>
-          ))}
-        </group>
-      );
-    case 'hair_braids':
-      return (
-        <group>
-          {backMass(0.9, -0.05)}
-          {cap}
-          {[-1, 1].map((s) =>
-            [0, 1, 2, 3].map((j) => (
-              <mesh key={`${s}-${j}`} position={[s * (0.95 + j * 0.03), HEAD_Y - 0.2 - j * 0.35, -0.05]}>
-                <sphereGeometry args={[0.16 - j * 0.02, 16, 16]} />
-                {mat}
-              </mesh>
-            ))
-          )}
-        </group>
-      );
-    case 'hair_curly':
-      return (
-        <group>
-          {[
-            [0, 1.05, 0], [-0.55, 0.95, 0], [0.55, 0.95, 0],
-            [-0.85, 0.55, 0], [0.85, 0.55, 0], [-0.8, 0.1, 0], [0.8, 0.1, 0],
-            [0, 1.1, -0.4], [-0.5, 0.9, -0.5], [0.5, 0.9, -0.5],
-          ].map(([x, y, z], i) => (
-            <mesh key={i} position={[x, HEAD_Y + y - 0.2, z]}>
-              <sphereGeometry args={[0.3, 20, 20]} />
-              {mat}
-            </mesh>
-          ))}
-        </group>
-      );
-    default:
-      return cap;
-  }
-};
-
-/* -------------------------- Body / Outfit ------------------------ */
-
-const Body: React.FC<{ config: AvatarConfig }> = ({ config }) => {
-  const { outfitPrimary, outfitSecondary, accentColor, skinTone } = config.colors;
-  return (
-    <group>
-      {/* neck */}
-      <mesh position={[0, 0.35, 0]}>
-        <cylinderGeometry args={[0.32, 0.36, 0.5, 24]} />
-        <meshStandardMaterial color={skinTone} roughness={0.7} />
-      </mesh>
-      {/* torso / shoulders */}
-      <RoundedBox args={[2.1, 1.6, 1.15]} radius={0.45} smoothness={5} position={[0, -0.55, 0]}>
-        <meshStandardMaterial color={outfitPrimary} roughness={0.6} />
-      </RoundedBox>
-      {/* collar accent */}
-      <mesh position={[0, 0.18, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.34, 0.08, 12, 24]} />
-        <meshStandardMaterial color={outfitSecondary} roughness={0.6} />
-      </mesh>
-      {/* centre motif */}
-      <mesh position={[0, -0.5, 0.62]}>
-        <sphereGeometry args={[0.09, 16, 16]} />
-        <meshStandardMaterial color={accentColor} roughness={0.5} />
-      </mesh>
+    <group scale={scale}>
+      <primitive object={bodyClone} />
+      <primitive object={headClone} />
     </group>
   );
-};
+}
 
-/* --------------------------- Accessories ------------------------- */
+// Warm the cache so swaps are instant.
+[...ALL_CHARS.male.map((c) => path('male', c)), ...ALL_CHARS.female.map((c) => path('female', c))]
+  .forEach((p) => useGLTF.preload(p));
 
-const Accessories: React.FC<{ config: AvatarConfig }> = ({ config }) => {
-  const acc = config.selection.accessories;
-  const accent = config.colors.accentColor;
-  const has = (id: string) => acc.includes(id);
-
-  return (
-    <group>
-      {(has('acc_glasses') || has('acc_sunglasses')) &&
-        [-0.42, 0.42].map((x) => (
-          <group key={x} position={[x, HEAD_Y + 0.12, 0.9]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <torusGeometry args={[0.24, 0.035, 12, 24]} />
-              <meshStandardMaterial color={accent} roughness={0.4} metalness={0.3} />
-            </mesh>
-            {has('acc_sunglasses') && (
-              <mesh position={[0, 0, -0.02]}>
-                <circleGeometry args={[0.24, 24]} />
-                <meshStandardMaterial color="#221d1a" transparent opacity={0.8} />
-              </mesh>
-            )}
-          </group>
-        ))}
-      {(has('acc_glasses') || has('acc_sunglasses')) && (
-        <mesh position={[0, HEAD_Y + 0.12, 0.92]}>
-          <boxGeometry args={[0.28, 0.04, 0.04]} />
-          <meshStandardMaterial color={accent} roughness={0.4} metalness={0.3} />
-        </mesh>
-      )}
-
-      {(has('acc_hat') || has('acc_cap')) && (
-        <group position={[0, HEAD_Y + 0.75, 0]}>
-          <mesh>
-            <cylinderGeometry args={[0.75, 0.8, 0.55, 32]} />
-            <meshStandardMaterial color={accent} roughness={0.6} />
-          </mesh>
-          <mesh position={[0, -0.28, has('acc_cap') ? 0.5 : 0]}>
-            <cylinderGeometry args={[has('acc_cap') ? 0.5 : 1.15, has('acc_cap') ? 0.5 : 1.15, 0.08, 32]} />
-            <meshStandardMaterial color={accent} roughness={0.6} />
-          </mesh>
-        </group>
-      )}
-
-      {(has('acc_crown') || has('acc_tiara')) && (
-        <group position={[0, HEAD_Y + 0.72, 0]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.7, 0.09, 12, 32]} />
-            <meshStandardMaterial color={accent} roughness={0.3} metalness={0.6} />
-          </mesh>
-          {[0, 1, 2, 3, 4].map((i) => {
-            const a = (i / 5) * Math.PI * 2;
-            return (
-              <mesh key={i} position={[Math.cos(a) * 0.7, 0.18, Math.sin(a) * 0.7]}>
-                <coneGeometry args={[0.1, 0.3, 8]} />
-                <meshStandardMaterial color={accent} roughness={0.3} metalness={0.6} />
-              </mesh>
-            );
-          })}
-        </group>
-      )}
-    </group>
-  );
-};
-
-/* --------------------------- Full model -------------------------- */
-
-const AvatarModel: React.FC = () => {
-  const config = useAvatarStore((s) => s.config);
-  const { skinTone, eyeColor, hairColor } = config.colors;
-  const expr = config.selection.expression;
-
-  // Brow tilt per expression (radians).
-  let browTilt = 0.05;
-  if (expr === 'expr_angry') browTilt = -0.35;
-  else if (expr === 'expr_sad') browTilt = 0.35;
-  else if (expr === 'expr_surprised') browTilt = 0.1;
-
-  return (
-    <group position={[0, 0.1, 0]}>
-      <Body config={config} />
-      <Head shape={config.selection.head} skin={skinTone} />
-      <Ears skin={skinTone} />
-      <Blush />
-      <Brow x={-0.42} tilt={browTilt} color={hairColor} />
-      <Brow x={0.42} tilt={-browTilt} color={hairColor} />
-      <Eye x={-0.42} eyeColor={eyeColor} />
-      <Eye x={0.42} eyeColor={eyeColor} />
-      <Nose skin={skinTone} />
-      <Mouth expr={expr} />
-      <Hair style={config.selection.hair} color={hairColor} />
-      <Accessories config={config} />
-    </group>
-  );
-};
-
-/* ----------------------------- Scene ----------------------------- */
-
-const Avatar3D: React.FC<{ className?: string }> = ({ className }) => {
-  return (
-    <div className={className} style={{ width: '100%', height: '100%' }}>
-      <Canvas
-        shadows
-        dpr={[1, 2]}
-        camera={{ position: [0, 0.8, 7], fov: 33 }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <ambientLight intensity={0.7} />
-        <hemisphereLight args={['#ffffff', '#b0b0d0', 0.6]} />
-        <directionalLight position={[4, 6, 5]} intensity={1.3} castShadow />
-        <directionalLight position={[-4, 2, -3]} intensity={0.4} />
-
-        <AvatarModel />
-
-        <ContactShadows position={[0, -1.5, 0]} opacity={0.35} scale={6} blur={2.5} far={4} />
-        <OrbitControls
-          enablePan={false}
-          minDistance={4}
-          maxDistance={10}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 1.9}
-          target={[0, 0.5, 0]}
-        />
-      </Canvas>
-    </div>
-  );
-};
+const Avatar3D: React.FC = () => (
+  <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.1, 4], fov: 30 }} gl={{ alpha: true }}>
+    <ambientLight intensity={1.1} />
+    <directionalLight position={[3, 5, 4]} intensity={1.4} />
+    <Suspense fallback={null}>
+      <Model />
+    </Suspense>
+    <ContactShadows position={[0, 0, 0]} opacity={0.35} scale={4} blur={2.5} far={3} />
+    <OrbitControls enablePan={false} minDistance={1.5} maxDistance={7} target={[0, 1, 0]} />
+  </Canvas>
+);
 
 export default Avatar3D;

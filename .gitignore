@@ -34,3 +34,6 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Large 3D avatar assets (re-downloadable CC0 / sample models — kept out of git history)
+public/models/

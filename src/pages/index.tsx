@@ -17,7 +17,7 @@ const VRMAvatar = dynamic(() => import('@components/VRMAvatar'), {
 
 export default function Home() {
   const { config, loadFromLocal, randomizeAvatar, undo, redo, canUndo, canRedo, saveToLocal } = useAvatarStore();
-  const [view, setView] = useState<'3d' | '2d' | 'vrm'>('2d');
+  const [view, setView] = useState<'3d' | '2d' | 'vrm'>('vrm');
 
   useEffect(() => {
     loadFromLocal();
