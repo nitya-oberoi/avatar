@@ -346,18 +346,31 @@ const scallop = (cx: number, cy: number, rx: number, ry: number, bumps: number):
   return d + 'Z';
 };
 
-// One cohesive tapering plait: silhouette + woven chevrons + tie + tassel.
+// A twisted-rope plait: overlapping oval knots tilted in alternating directions
+// so it unmistakably reads as braided, tapering to a tie + tassel.
 const braid = (bx: number, col: string): string => {
-  const topY = 116, botY = 208, wTop = 15, wBot = 6;
-  const dk = darken(col, 14);
-  const sil = `<path d="M${bx - wTop} ${topY} C${bx - wTop - 3} ${topY + 34} ${bx - wBot - 5} ${botY - 44} ${bx - wBot} ${botY - 8} Q${bx} ${botY + 6} ${bx + wBot} ${botY - 8} C${bx + wBot + 5} ${botY - 44} ${bx + wTop + 3} ${topY + 34} ${bx + wTop} ${topY} Z" fill="${col}" ${stroke}/>`;
-  const chev = [130, 148, 165, 181, 195].map((y, i) => {
-    const w = (wTop - (wTop - wBot) * (i / 5)) * 0.8;
-    return `<path d="M${bx - w} ${y - 3} Q${bx} ${y + 4} ${bx + w} ${y - 3}" fill="none" stroke="${dk}" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>`;
-  }).join('');
-  const tie = `<rect x="${bx - 8}" y="${botY - 8}" width="16" height="8" rx="3.5" fill="${dk}" ${stroke}/>`;
-  const tassel = [-5, 0, 5].map((dx) => `<path d="M${bx + dx} ${botY} q${dx * 0.4} 8 ${dx * 0.5} 13" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`).join('');
-  return `${sil}${chev}${tie}${tassel}`;
+  const hi = lighten(col, 16);
+  const knots = [
+    { y: 122, rx: 15, ry: 12 },
+    { y: 138, rx: 14, ry: 12 },
+    { y: 154, rx: 12, ry: 11 },
+    { y: 169, rx: 11, ry: 10 },
+    { y: 183, rx: 9, ry: 9 },
+    { y: 195, rx: 7, ry: 8 },
+  ];
+  const botY = 202;
+  const seg = knots
+    .map((k, i) => {
+      const rot = i % 2 === 0 ? 20 : -20; // alternate tilt = the weave
+      return `<g transform="rotate(${rot} ${bx} ${k.y})">`
+        + `<ellipse cx="${bx}" cy="${k.y}" rx="${k.rx}" ry="${k.ry}" fill="${col}" ${stroke}/>`
+        + `<ellipse cx="${bx - k.rx * 0.3}" cy="${k.y - k.ry * 0.3}" rx="${k.rx * 0.4}" ry="${k.ry * 0.4}" fill="${hi}" opacity="0.45"/>`
+        + `</g>`;
+    })
+    .join('');
+  const tie = `<rect x="${bx - 7}" y="${botY - 4}" width="14" height="7" rx="3" fill="${darken(col, 22)}" ${stroke}/>`;
+  const tassel = [-4, 0, 4].map((dx) => `<path d="M${bx + dx} ${botY + 2} q${dx * 0.5} 7 ${dx * 0.6} 12" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`).join('');
+  return `${seg}${tie}${tassel}`;
 };
 
 /* --------------------------- accessories ------------------------- */
