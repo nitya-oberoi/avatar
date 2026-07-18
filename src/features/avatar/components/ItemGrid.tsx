@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAvatarStore } from '@stores/avatarStore';
 import type { AvatarSelection } from '@apptypes/avatar';
-import { renderHairThumbnail } from '@lib/avatarRenderer';
+import { renderHairThumbnail, renderHeadThumbnail } from '@lib/avatarRenderer';
 import { isUnlocked, priceOf, type AvatarSlot } from '@/avatar-core';
 import { appCatalog } from '../application/avatarCatalog';
 import styles from './creator.module.css';
@@ -16,6 +16,7 @@ interface Props {
 export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
   const config = useAvatarStore((s) => s.config);
   const hairColor = useAvatarStore((s) => s.config.colors.hairColor);
+  const skinTone = useAvatarStore((s) => s.config.colors.skinTone);
   const selectTrait = useAvatarStore((s) => s.selectTrait);
   const addAccessory = useAvatarStore((s) => s.addAccessory);
   const removeAccessory = useAvatarStore((s) => s.removeAccessory);
@@ -23,6 +24,7 @@ export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
   const items = appCatalog.bySlot[slot] ?? [];
   const isAccessories = slot === 'accessories';
   const isHair = slot === 'hair';
+  const isHead = slot === 'head';
   const selectedIds = isAccessories
     ? config.selection.accessories
     : [config.selection[slot as SingleSlot]];
@@ -51,11 +53,13 @@ export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
             onClick={() => (locked ? undefined : pick(it.id))}
             title={locked ? `${it.name} — locked` : it.name}
           >
-            {isHair ? (
+            {isHair || isHead ? (
               <span
                 className={styles.thumb}
                 aria-hidden
-                dangerouslySetInnerHTML={{ __html: renderHairThumbnail(it.id, hairColor) }}
+                dangerouslySetInnerHTML={{
+                  __html: isHair ? renderHairThumbnail(it.id, hairColor) : renderHeadThumbnail(it.id, skinTone),
+                }}
               />
             ) : (
               <span aria-hidden>{it.icon ?? '◇'}</span>

@@ -586,6 +586,37 @@ export const renderHairThumbnail = (hairId: string, hairColor = '#3D2817', size 
   </svg>`;
 };
 
+// A head-shape preview: the chosen head silhouette with ears and a simple face
+// (no hair, so the shape reads clearly). Used by the creator's Head items.
+export const renderHeadThumbnail = (headId: string, skinTone = '#EFCBB4', size = 88): string => {
+  const c: AvatarConfig = {
+    id: 'thumb',
+    version: 1,
+    selection: {
+      gender: 'female',
+      body: 'body_standard',
+      head: headId,
+      hair: 'hair_short',
+      outfit: 'outfit_casual',
+      accessories: [],
+      expression: 'expr_happy',
+    },
+    colors: {
+      skinTone,
+      hairColor: '#3D2817',
+      eyeColor: '#6B4423',
+      outfitPrimary: '#cccccc',
+      outfitSecondary: '#cccccc',
+      accentColor: '#cccccc',
+    },
+    createdAt: 0,
+    updatedAt: 0,
+  };
+  return `<svg width="${size}" height="${size}" viewBox="60 22 180 164" xmlns="http://www.w3.org/2000/svg">
+    ${renderEars(c)}${renderHead(c)}${renderFace(c)}
+  </svg>`;
+};
+
 /* --------------------------- accessories ------------------------- */
 
 const renderAccessories = (c: AvatarConfig): string => {
