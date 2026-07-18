@@ -20,6 +20,7 @@ export interface CreatorCategory {
 
 export const CREATOR_CATEGORIES: CreatorCategory[] = [
   { id: 'body', label: 'Body', icon: '🧍', slot: 'body' },
+  { id: 'head', label: 'Head', icon: '🥚', slot: 'head' },
   { id: 'skin', label: 'Skin', icon: '🎨', colorKeys: ['skinTone'] },
   { id: 'hair', label: 'Hair', icon: '💇', slot: 'hair', colorKeys: ['hairColor'] },
   { id: 'face', label: 'Face', icon: '😀', slot: 'expression' },
