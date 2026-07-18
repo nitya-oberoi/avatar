@@ -150,6 +150,58 @@ export const traitCatalog = {
 };
 
 /**
+ * Style knowledge — used by smart randomize and item ordering.
+ * Items not listed are considered neutral (fine for everyone).
+ */
+export const genderStyles = {
+  feminine: {
+    hair: ['hair_long', 'hair_braids', 'hair_bun', 'hair_bob', 'hair_pigtails', 'hair_ponytail', 'hair_curly_long', 'hair_ringlets', 'hair_bangs', 'hair_curly_bob', 'hair_curly_pony', 'hair_pixie', 'hair_wavy'],
+    tops: ['top_blouse', 'top_crop', 'top_tank'],
+    bottoms: ['bottom_skirt'],
+    shoes: ['shoes_heels'],
+  },
+  masculine: {
+    hair: ['hair_short', 'hair_crew', 'hair_quiff', 'hair_fauxhawk', 'hair_tousled', 'hair_swoop', 'hair_shaggy', 'hair_spiky', 'hair_undercut', 'hair_sidepart', 'hair_mohawk'],
+    tops: ['top_shirt', 'top_polo', 'top_jersey', 'top_hoodie'],
+    bottoms: ['bottom_cargo', 'bottom_joggers'],
+    shoes: ['shoes_dress', 'shoes_boots'],
+  },
+};
+
+/** Realistic skin tones (light → deep) for the skin swatch row. */
+export const skinTones = [
+  '#FFE4D0', '#F8D5BB', '#F0C0A0', '#E8B4A0', '#DEA583', '#D4956E',
+  '#C68642', '#B0703C', '#8D5524', '#74491F', '#5C3A21', '#3D2B1F',
+];
+
+/** Natural hair colors plus a few fun ones for the hair swatch row. */
+export const hairColors = [
+  '#0E0E10', '#1A1A1A', '#2D1B0E', '#3D2817', '#4A2C0A', '#6B4A2A',
+  '#8B4513', '#B87333', '#D19C4C', '#E6C590', '#B0B0B0', '#F2F2F2',
+  '#7C3AED', '#E84393', '#1E88E5', '#16A085',
+];
+
+/** Eye colors for the eye swatch row. */
+export const eyeColors = [
+  '#2B1700', '#4E342E', '#6B4423', '#8D6E63', '#3E7C3A', '#2E7D6E',
+  '#3498DB', '#1B4F91', '#7F8C8D', '#7851A9',
+];
+
+/** Curated top/bottom/accent combos so random outfits always coordinate. */
+export const outfitCombos = [
+  { outfitPrimary: '#FF6B9D', outfitSecondary: '#3E63C8', accentColor: '#FFC857' },
+  { outfitPrimary: '#5B7CFA', outfitSecondary: '#2C3E50', accentColor: '#E8536F' },
+  { outfitPrimary: '#1ABC9C', outfitSecondary: '#34495E', accentColor: '#F5C542' },
+  { outfitPrimary: '#E74C3C', outfitSecondary: '#2C3E50', accentColor: '#ECF0F1' },
+  { outfitPrimary: '#F5C542', outfitSecondary: '#39518F', accentColor: '#E8536F' },
+  { outfitPrimary: '#9B59B6', outfitSecondary: '#2C3E50', accentColor: '#1ABC9C' },
+  { outfitPrimary: '#2ECC71', outfitSecondary: '#264653', accentColor: '#E76F51' },
+  { outfitPrimary: '#FF8C42', outfitSecondary: '#33415C', accentColor: '#8AC926' },
+  { outfitPrimary: '#ECF0F1', outfitSecondary: '#2C3E50', accentColor: '#E84393' },
+  { outfitPrimary: '#34495E', outfitSecondary: '#7F8C8D', accentColor: '#F39C12' },
+];
+
+/**
  * Color Palettes
  * Predefined color combinations for quick selection
  * Easy to add more - just add a new object with color hex codes

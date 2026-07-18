@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAvatarStore } from '@stores/avatarStore';
 import type { AvatarColors } from '@apptypes/avatar';
-import { COLOR_SWATCHES } from '../application/categories';
+import { SWATCHES_BY_KEY } from '../application/categories';
 import styles from './creator.module.css';
 
 const LABELS: Record<keyof AvatarColors, string> = {
@@ -27,7 +27,7 @@ export const ColorSwatches: React.FC<Props> = ({ colorKeys }) => {
         <div key={key}>
           <div className={styles.colorKeyLabel}>{LABELS[key]}</div>
           <div className={styles.swatchRow}>
-            {COLOR_SWATCHES.map((c) => {
+            {SWATCHES_BY_KEY[key].map((c) => {
               const selected = colors[key].toLowerCase() === c.toLowerCase();
               return (
                 <button

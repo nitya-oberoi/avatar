@@ -7,6 +7,7 @@
  */
 
 import type { AvatarSlot, AvatarColors } from '@/avatar-core';
+import { skinTones, hairColors, eyeColors } from '@config/defaults';
 
 export interface CreatorCategory {
   id: string;
@@ -31,9 +32,19 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
   { id: 'accessories', label: 'Accessories', icon: '🧢', slot: 'accessories' },
 ];
 
-/** Swatch palette offered for every colour key (extend freely). */
-export const COLOR_SWATCHES: string[] = [
-  '#2B2B2B', '#5C3A21', '#E8B4A0', '#F0C0A0', '#8D5524', '#C68642',
-  '#3D2817', '#7C3AED', '#1E88E5', '#16A085', '#E74C3C', '#F5C542',
-  '#FF6B9D', '#FFFFFF',
+/** Fashion colours for garment keys. */
+const FASHION_SWATCHES: string[] = [
+  '#FFFFFF', '#ECF0F1', '#2B2B2B', '#2C3E50', '#39518F', '#5B7CFA',
+  '#1E88E5', '#16A085', '#2ECC71', '#F5C542', '#FF8C42', '#E74C3C',
+  '#E84393', '#FF6B9D', '#9B59B6', '#7C3AED',
 ];
+
+/** Each colour key gets a swatch set that makes sense for it. */
+export const SWATCHES_BY_KEY: Record<keyof AvatarColors, string[]> = {
+  skinTone: skinTones,
+  hairColor: hairColors,
+  eyeColor: eyeColors,
+  outfitPrimary: FASHION_SWATCHES,
+  outfitSecondary: FASHION_SWATCHES,
+  accentColor: FASHION_SWATCHES,
+};

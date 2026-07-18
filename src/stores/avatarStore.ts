@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import { AvatarConfig, AvatarSelection, AvatarColors, HistoryState } from '@apptypes/avatar';
 import { generateUUID, randomItem } from '@lib/utils';
-import { defaultColors, traitCatalog, colorPalettes, uiConfig } from '@config/defaults';
+import { defaultColors, traitCatalog, uiConfig, genderStyles, outfitCombos, hairColors } from '@config/defaults';
 import { LocalStorageAvatarRepository } from '@/features/avatar/infrastructure/localStorageRepository';
 
 const STORAGE_KEY = 'avatarConfig';
@@ -194,35 +194,42 @@ export const useAvatarStore = create<AvatarStore>((set, get) => ({
 
   randomizeAvatar: () =>
     set((state) => {
-      // Pick a cohesive palette rather than six random colors so results
-      // always look intentional. Traits are drawn from the full catalog.
-      const palette = randomItem(colorPalettes);
-      const accessoryPool = traitCatalog.accessories;
+      // Smart randomize: "new look, same person". Identity traits (gender,
+      // skin, eyes, head, body) are kept; style traits are rerolled from
+      // gender-appropriate pools with a curated, coordinated colour combo.
+      const gender = state.config.selection.gender;
+      const avoid = gender === 'male' ? genderStyles.feminine : genderStyles.masculine;
+      const pool = <T extends { id: string }>(items: T[], excluded: string[]): T[] => {
+        const filtered = items.filter((t) => !excluded.includes(t.id));
+        return filtered.length ? filtered : items;
+      };
+
+      const combo = randomItem(outfitCombos);
       const accessoryCount = Math.floor(Math.random() * 3); // 0, 1, or 2
-      const accessories = Array.from({ length: accessoryCount }, () => randomItem(accessoryPool).id).filter(
+      const accessories = Array.from({ length: accessoryCount }, () => randomItem(traitCatalog.accessories).id).filter(
         (id, i, arr) => arr.indexOf(id) === i
       );
+      // Weight expressions toward friendly ones — random angry avatars feel broken.
+      const HAPPY = ['expr_happy', 'expr_cool', 'expr_wink', 'expr_love'];
+      const expression = Math.random() < 0.75
+        ? randomItem(HAPPY)
+        : randomItem(traitCatalog.expressions).id;
 
       return commit(state, {
         ...state.config,
         selection: {
-          gender: randomItem(['male', 'female'] as const),
-          body: randomItem(traitCatalog.bodies).id,
-          head: randomItem(traitCatalog.heads).id,
-          hair: randomItem(traitCatalog.hair).id,
-          top: randomItem(traitCatalog.tops).id,
-          bottom: randomItem(traitCatalog.bottoms).id,
-          shoes: randomItem(traitCatalog.shoes).id,
-          expression: randomItem(traitCatalog.expressions).id,
+          ...state.config.selection,
+          hair: randomItem(pool(traitCatalog.hair, avoid.hair)).id,
+          top: randomItem(pool(traitCatalog.tops, avoid.tops)).id,
+          bottom: randomItem(pool(traitCatalog.bottoms, avoid.bottoms)).id,
+          shoes: randomItem(pool(traitCatalog.shoes, avoid.shoes)).id,
+          expression,
           accessories,
         },
         colors: {
-          skinTone: palette.skinTone,
-          hairColor: palette.hairColor,
-          eyeColor: palette.eyeColor,
-          outfitPrimary: palette.outfitPrimary,
-          outfitSecondary: palette.outfitSecondary,
-          accentColor: palette.accentColor,
+          ...state.config.colors, // skin + eyes stay — they're identity
+          hairColor: randomItem(hairColors.slice(0, 12)), // natural shades
+          ...combo,
         },
         updatedAt: Date.now(),
       });

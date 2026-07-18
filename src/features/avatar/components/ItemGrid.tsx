@@ -12,6 +12,7 @@ import {
   renderShoesThumbnail,
 } from '@lib/avatarRenderer';
 import { isUnlocked, priceOf, type AvatarSlot } from '@/avatar-core';
+import { genderStyles } from '@config/defaults';
 import { appCatalog } from '../application/avatarCatalog';
 import styles from './creator.module.css';
 
@@ -29,7 +30,19 @@ export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
   const addAccessory = useAvatarStore((s) => s.addAccessory);
   const removeAccessory = useAvatarStore((s) => s.removeAccessory);
 
-  const items = appCatalog.bySlot[slot] ?? [];
+  // Order items so styles matching the current gender come first (nothing is
+  // hidden — the other styles just sort to the end).
+  const gender = config.selection.gender;
+  const SLOT_STYLE_KEY: Partial<Record<AvatarSlot, keyof typeof genderStyles.feminine>> = {
+    hair: 'hair', top: 'tops', bottom: 'bottoms', shoes: 'shoes',
+  };
+  const styleKey = SLOT_STYLE_KEY[slot];
+  const offStyle = styleKey
+    ? new Set((gender === 'male' ? genderStyles.feminine : genderStyles.masculine)[styleKey])
+    : null;
+  const items = [...(appCatalog.bySlot[slot] ?? [])].sort((a, b) =>
+    offStyle ? Number(offStyle.has(a.id)) - Number(offStyle.has(b.id)) : 0,
+  );
   const isAccessories = slot === 'accessories';
 
   // Every slot renders a live avatar preview instead of an emoji icon.
