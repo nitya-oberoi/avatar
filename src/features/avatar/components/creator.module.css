@@ -1,0 +1,176 @@
+/* Dark game-style avatar creator theme. Desktop-first, responsive fallback. */
+
+.screen {
+  --bg: #0e1526;
+  --panel: #182339;
+  --panel2: #1f2c47;
+  --border: #2b3a5c;
+  --text: #e9eefb;
+  --muted: #8b98ba;
+  --accent: #7c3aed;
+  --accent2: #9b6cf5;
+  --gold: #f5c542;
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 70% -10%, #1a2b4d 0%, transparent 60%), var(--bg);
+  background-color: var(--bg);
+  color: var(--text);
+  padding: 18px 22px 26px;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* header */
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 16px; flex-wrap: wrap; }
+.title { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 0.5px; }
+.subtitle { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.headerRight { display: flex; align-items: center; gap: 14px; }
+.coins { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 8px 10px 8px 14px; font-weight: 700; }
+.coinDot { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); box-shadow: 0 0 0 2px #a9781f inset; }
+.coinPlus { width: 26px; height: 26px; border-radius: 8px; border: none; background: var(--panel2); color: var(--text); font-size: 16px; cursor: pointer; }
+.saveBtn { background: linear-gradient(180deg, var(--accent2), var(--accent)); color: #fff; border: none; border-radius: 12px; padding: 12px 22px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; box-shadow: 0 4px 0 #5a2bb0; transition: transform 0.08s; }
+.saveBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #5a2bb0; }
+.saveBtn:focus-visible, .catBtn:focus-visible, .card:focus-visible, .animBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+
+/* body layout */
+.body { display: grid; grid-template-columns: 210px 340px 1fr; gap: 16px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 14px; }
+
+/* sidebar */
+.sidebar { display: flex; flex-direction: column; gap: 8px; }
+.catBtn { display: flex; align-items: center; gap: 12px; width: 100%; border: 1px solid transparent; background: var(--panel2); color: var(--text); border-radius: 14px; padding: 12px 14px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: left; transition: background 0.12s, transform 0.08s; }
+.catBtn:hover { background: #26355680; }
+.catBtnActive { background: linear-gradient(180deg, var(--accent2), var(--accent)); box-shadow: 0 3px 0 #5a2bb0; }
+.catIcon { font-size: 18px; width: 26px; height: 26px; display: grid; place-items: center; }
+
+/* center: gender toggle + item grid + colours */
+.genderRow { display: flex; gap: 6px; margin-bottom: 14px; background: var(--panel2); padding: 5px; border-radius: 12px; }
+.genderBtn { flex: 1; border: none; background: transparent; color: var(--muted); font-weight: 700; font-size: 14px; padding: 9px; border-radius: 9px; cursor: pointer; }
+.genderBtnActive { background: linear-gradient(180deg, var(--accent2), var(--accent)); color: #fff; }
+
+.sectionLabel { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin: 2px 0 12px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.card { position: relative; aspect-ratio: 1; border: 2px solid var(--border); background: var(--panel2); border-radius: 14px; display: grid; place-items: center; cursor: pointer; font-size: 34px; color: var(--text); transition: transform 0.08s, border-color 0.12s; }
+.card:hover { transform: translateY(-2px); border-color: #3d517d; }
+.cardSelected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold) inset; }
+.cardName { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--muted); }
+.check { position: absolute; bottom: 4px; right: 6px; color: #4ade80; font-weight: 900; font-size: 14px; }
+.locked { position: absolute; inset: 0; background: #0e152699; border-radius: 12px; display: grid; place-items: center; font-size: 22px; }
+.gem { position: absolute; top: 5px; right: 6px; font-size: 13px; }
+.price { position: absolute; top: 5px; left: 7px; font-size: 10px; font-weight: 800; color: var(--gold); }
+
+/* colours */
+.swatchRow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.swatch { width: 30px; height: 30px; border-radius: 9px; border: 2px solid #ffffff22; cursor: pointer; position: relative; }
+.swatchSelected { border-color: var(--accent2); box-shadow: 0 0 0 2px var(--accent2); }
+.swatchCheck { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; text-shadow: 0 1px 2px #000; }
+.colorKeyLabel { color: var(--muted); font-size: 11px; font-weight: 700; margin: 14px 0 2px; text-transform: capitalize; }
+
+/* preview stage */
+.stage { position: relative; border-radius: 18px; overflow: hidden; min-height: 560px; border: 1px solid var(--border);
+  background: linear-gradient(180deg, #6db3f2 0%, #a9dbff 55%, #cfe8ff 100%); }
+.ground { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; background: linear-gradient(180deg, #7cc47c, #4f9a4f 60%, #6b4a2f 60%, #543a25); }
+.stageInner { position: absolute; inset: 0; display: grid; place-items: center; }
+.avatarWrap { position: relative; bottom: -6%; filter: drop-shadow(0 12px 10px rgba(0,0,0,0.35)); transform-origin: 50% 100%; }
+.animRail { position: absolute; top: 14px; right: 14px; display: flex; flex-direction: column; gap: 10px; }
+.railBtn { width: 52px; height: 52px; border-radius: 14px; border: 1px solid var(--border); background: #0e1526cc; color: var(--text); font-size: 22px; cursor: pointer; display: grid; place-items: center; }
+.railBtnActive { background: linear-gradient(180deg, var(--accent2), var(--accent)); border-color: var(--accent2); }
+
+/* animation bar */
+.animBar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px; display: flex; gap: 8px; background: #0e1526cc; border: 1px solid var(--border); border-radius: 14px; padding: 8px; backdrop-filter: blur(4px); }
+.animBtn { border: none; background: transparent; color: var(--muted); font-weight: 800; letter-spacing: 0.5px; font-size: 13px; padding: 9px 16px; border-radius: 10px; cursor: pointer; }
+.animBtnActive { background: linear-gradient(180deg, var(--accent2), var(--accent)); color: #fff; }
+
+/* preset bar */
+.presetBar { margin-top: 16px; display: flex; gap: 12px; align-items: center; overflow-x: auto; padding: 4px; }
+.slot { position: relative; width: 92px; height: 92px; flex: 0 0 auto; border-radius: 14px; border: 2px solid var(--border); background: var(--panel2); cursor: pointer; display: grid; place-items: center; overflow: hidden; }
+.slotActive { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold) inset; }
+.slotStar { position: absolute; top: 4px; right: 6px; color: var(--gold); font-size: 13px; }
+.newSlot { border-style: dashed; color: var(--muted); font-size: 13px; font-weight: 700; flex-direction: column; gap: 4px; }
+.newSlotPlus { font-size: 26px; }
+.slotSvg { width: 100%; height: 100%; display: grid; place-items: center; }
+.slotSvg svg { width: 84px; height: 84px; }
+
+/* ---- rigged per-limb animation -------------------------------------------
+   The SVG avatar is drawn as classed part groups (avp-root/armL/armR/legL/
+   legR/head/body). Each limb rotates about its own joint (arms=shoulder,
+   legs=hip, head=neck) via transform-box:fill-box + a corner/edge origin.
+   Class names are literal in the SVG, so target them with :global(). --------*/
+.avatarWrap :global(.avp-armL) { transform-box: fill-box; transform-origin: 100% 0%; }  /* shoulder = inner-top */
+.avatarWrap :global(.avp-armR) { transform-box: fill-box; transform-origin: 0% 0%; }
+.avatarWrap :global(.avp-legL), .avatarWrap :global(.avp-legR) { transform-box: fill-box; transform-origin: 50% 0%; } /* hip = top-centre */
+.avatarWrap :global(.avp-head) { transform-box: fill-box; transform-origin: 50% 100%; } /* neck = bottom-centre */
+.avatarWrap :global(.avp-root) { transform-box: fill-box; transform-origin: 50% 100%; }
+
+/* idle: breathe + gentle arm sway + slow head tilt */
+.anim_idle :global(.avp-root) { animation: av-breathe 2.8s ease-in-out infinite; }
+.anim_idle :global(.avp-armL) { animation: av-idleArmL 2.8s ease-in-out infinite; }
+.anim_idle :global(.avp-armR) { animation: av-idleArmR 2.8s ease-in-out infinite; }
+.anim_idle :global(.avp-head) { animation: av-idleHead 5s ease-in-out infinite; }
+@keyframes av-breathe { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+@keyframes av-idleArmL { 0%,100% { transform: rotate(0) } 50% { transform: rotate(3deg) } }
+@keyframes av-idleArmR { 0%,100% { transform: rotate(0) } 50% { transform: rotate(-3deg) } }
+@keyframes av-idleHead { 0%,100% { transform: rotate(-1.5deg) } 50% { transform: rotate(1.5deg) } }
+
+/* walk: contralateral legs+arms (half-period delay) + small bob */
+.anim_walk :global(.avp-root) { animation: av-bob 0.36s ease-in-out infinite; }
+.anim_walk :global(.avp-legL) { animation: av-step 0.72s ease-in-out infinite; }
+.anim_walk :global(.avp-legR) { animation: av-step 0.72s ease-in-out infinite; animation-delay: -0.36s; }
+.anim_walk :global(.avp-armL) { animation: av-swing 0.72s ease-in-out infinite; animation-delay: -0.36s; }
+.anim_walk :global(.avp-armR) { animation: av-swing 0.72s ease-in-out infinite; }
+@keyframes av-step { 0%,100% { transform: rotate(18deg) } 50% { transform: rotate(-18deg) } }
+@keyframes av-swing { 0%,100% { transform: rotate(-15deg) } 50% { transform: rotate(15deg) } }
+@keyframes av-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+
+/* run: bigger, faster, slight forward lean */
+.anim_run :global(.avp-root) { animation: av-bobRun 0.42s ease-in-out infinite; }
+.anim_run :global(.avp-legL) { animation: av-stepRun 0.42s ease-in-out infinite; }
+.anim_run :global(.avp-legR) { animation: av-stepRun 0.42s ease-in-out infinite; animation-delay: -0.21s; }
+.anim_run :global(.avp-armL) { animation: av-swingRun 0.42s ease-in-out infinite; animation-delay: -0.21s; }
+.anim_run :global(.avp-armR) { animation: av-swingRun 0.42s ease-in-out infinite; }
+@keyframes av-stepRun { 0%,100% { transform: rotate(30deg) } 50% { transform: rotate(-30deg) } }
+@keyframes av-swingRun { 0%,100% { transform: rotate(-40deg) } 50% { transform: rotate(40deg) } }
+@keyframes av-bobRun { 0%,100% { transform: translateY(0) rotate(5deg) } 50% { transform: translateY(-6px) rotate(5deg) } }
+
+/* jump: crouch → launch, legs tuck, arms raise */
+.anim_jump :global(.avp-root) { animation: av-hop 1s ease-in-out infinite; }
+.anim_jump :global(.avp-legL), .anim_jump :global(.avp-legR) { animation: av-tuck 1s ease-in-out infinite; }
+.anim_jump :global(.avp-armL) { animation: av-armUpL 1s ease-in-out infinite; }
+.anim_jump :global(.avp-armR) { animation: av-armUpR 1s ease-in-out infinite; }
+@keyframes av-hop { 0%,100% { transform: translateY(0) } 16% { transform: translateY(5px) } 55% { transform: translateY(-46px) } 80% { transform: translateY(0) } }
+@keyframes av-tuck { 0%,100% { transform: rotate(0) } 55% { transform: rotate(15deg) } }
+@keyframes av-armUpL { 0%,100% { transform: rotate(0) } 55% { transform: rotate(38deg) } }
+@keyframes av-armUpR { 0%,100% { transform: rotate(0) } 55% { transform: rotate(-38deg) } }
+
+/* attack: right-arm punch + body lean */
+.anim_attack :global(.avp-root) { animation: av-lean 0.6s ease-in-out infinite; }
+.anim_attack :global(.avp-armR) { animation: av-punch 0.6s ease-in-out infinite; }
+@keyframes av-lean { 0%,100% { transform: translateX(0) rotate(0) } 35% { transform: translateX(7px) rotate(3deg) } }
+@keyframes av-punch { 0%,100% { transform: rotate(0) } 35% { transform: rotate(-100deg) } 55% { transform: rotate(-85deg) } }
+
+/* dance: hip sway + arms up + head bob */
+.anim_dance :global(.avp-root) { animation: av-sway 0.9s ease-in-out infinite; }
+.anim_dance :global(.avp-armL) { animation: av-danceArmL 0.9s ease-in-out infinite; }
+.anim_dance :global(.avp-armR) { animation: av-danceArmR 0.9s ease-in-out infinite; }
+.anim_dance :global(.avp-head) { animation: av-danceHead 0.9s ease-in-out infinite; }
+@keyframes av-sway { 0%,100% { transform: translateX(-7px) rotate(-4deg) } 50% { transform: translateX(7px) rotate(4deg) } }
+@keyframes av-danceArmL { 0%,100% { transform: rotate(20deg) } 50% { transform: rotate(-45deg) } }
+@keyframes av-danceArmR { 0%,100% { transform: rotate(-20deg) } 50% { transform: rotate(45deg) } }
+@keyframes av-danceHead { 0%,100% { transform: rotate(4deg) } 50% { transform: rotate(-4deg) } }
+
+/* celebrate: jump for joy, arms up */
+.anim_celebrate :global(.avp-root) { animation: av-joy 0.8s ease-in-out infinite; }
+.anim_celebrate :global(.avp-armL) { animation: av-celArmL 0.8s ease-in-out infinite; }
+.anim_celebrate :global(.avp-armR) { animation: av-celArmR 0.8s ease-in-out infinite; }
+@keyframes av-joy { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-16px) } }
+@keyframes av-celArmL { 0%,100% { transform: rotate(-45deg) } 50% { transform: rotate(-65deg) } }
+@keyframes av-celArmR { 0%,100% { transform: rotate(45deg) } 50% { transform: rotate(65deg) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .avatarWrap :global(.avp-root), .avatarWrap :global(.avp-armL), .avatarWrap :global(.avp-armR),
+  .avatarWrap :global(.avp-legL), .avatarWrap :global(.avp-legR), .avatarWrap :global(.avp-head) { animation: none !important; }
+}
+
+@media (max-width: 1024px) {
+  .body { grid-template-columns: 1fr; }
+  .stage { min-height: 440px; }
+}

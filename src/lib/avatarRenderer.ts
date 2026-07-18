@@ -23,23 +23,34 @@ export const renderAvatarSVG = (config: AvatarConfig, size = 300): string => {
   const hair = renderHair(config);
   const w = Math.round(size * (300 / 380));
   const uid = hashId(config.id + config.selection.head);
-  const headShape = headGeom(config.selection.head).path;
+  const hg = headGeom(config.selection.head, config.selection.gender);
   return `
     <svg width="${w}" height="${size}" viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
-      <defs><clipPath id="head-${uid}">${headShape} /></clipPath></defs>
+      <defs><clipPath id="head-${uid}">${hg.path} ${headScale(hg.f)} /></clipPath></defs>
       <ellipse cx="${CX}" cy="366" rx="72" ry="12" fill="#000" opacity="0.10"/>
-      ${hair.back}
-      ${renderLegs(config, uid)}
-      ${renderTorso(config, uid)}
-      ${renderNeck(config)}
-      ${renderEars(config)}
-      ${renderHead(config)}
-      ${renderFaceShadow(config, uid)}
-      ${renderFace(config)}
-      ${hair.front}
-      ${renderAccessories(config)}
+      ${rig(config, uid, hair)}
     </svg>
   `.trim();
+};
+
+// Assemble the avatar into rigged part groups so a stylesheet can animate each
+// limb independently (real walk/run/jump cycles, not a whole-body wobble).
+// Class names are LITERAL (not CSS-module-hashed); the creator stylesheet
+// targets them via :global(). Draw order preserves the original stacking:
+// hair-back → legs → arms → body(+neck) → head(+face+front-hair+accessories).
+const rig = (c: AvatarConfig, uid: string, hair: HairLayers): string => {
+  const legs = renderLegs(c, uid);
+  const torso = renderTorso(c, uid);
+  return `
+    <g class="avp-root">
+      ${hair.back}
+      <g class="avp-legL">${legs.left}</g>
+      <g class="avp-legR">${legs.right}</g>
+      <g class="avp-armL">${torso.armL}</g>
+      <g class="avp-armR">${torso.armR}</g>
+      <g class="avp-body">${torso.body}${renderNeck(c)}</g>
+      <g class="avp-head">${renderEars(c)}${renderHead(c)}${renderFaceShadow(c, uid)}${renderFace(c)}${hair.front}${renderAccessories(c)}</g>
+    </g>`;
 };
 
 // Soft cel-shading on the face: light from top-left, so a darker-skin ellipse
@@ -56,11 +67,13 @@ const renderFaceShadow = (c: AvatarConfig, uid: string): string => {
 
 /* ------------------------------- body ---------------------------- */
 
-// Small silhouette tweaks per body trait.
+// Gender + body-trait silhouette. Male = broad shoulders / narrow hips (V);
+// female = narrower shoulders / wider hips (hourglass, with the waist pinch in
+// the torso path).
 const bodyGeom = (c: AvatarConfig) => {
   const female = c.selection.gender === 'female';
-  let shoulder = female ? 38 : 46; // half-width at shoulders
-  let hip = female ? 42 : 42; // half-width at hips
+  let shoulder = female ? 36 : 49; // half-width at shoulders
+  let hip = female ? 46 : 37; // half-width at hips
   switch (c.selection.body) {
     case 'body_slim': shoulder -= 6; hip -= 5; break;
     case 'body_athletic': shoulder += 7; break;
@@ -69,7 +82,7 @@ const bodyGeom = (c: AvatarConfig) => {
   return { shoulder, hip, female };
 };
 
-const renderLegs = (c: AvatarConfig, uid: string): string => {
+const renderLegs = (c: AvatarConfig, uid: string): { left: string; right: string } => {
   const pants = c.colors.outfitSecondary;
   const shade = darken(pants, 13);
   const shoes = c.colors.accentColor;
@@ -87,10 +100,10 @@ const renderLegs = (c: AvatarConfig, uid: string): string => {
     <path d="M${cx - 15} 340 Q${cx - 17} 360 ${cx - 9} 367 Q${cx} 370 ${cx + 9} 367 Q${cx + 17} 360 ${cx + 15} 340 Z" fill="${shoes}" ${stroke}/>
     <path d="M${cx - 14} 361 Q${cx} 366 ${cx + 14} 361" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
     <path d="M${cx - 10} 348 Q${cx} 351 ${cx + 10} 348" fill="none" stroke="${lighten(shoes, 22)}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`;
-  return `${leg(119, 0)}${leg(154, 1)}${shoe(132)}${shoe(167)}`;
+  return { left: `${leg(119, 0)}${shoe(132)}`, right: `${leg(154, 1)}${shoe(167)}` };
 };
 
-const renderTorso = (c: AvatarConfig, uid: string): string => {
+const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string; body: string } => {
   const p = c.colors.outfitPrimary;
   const skin = c.colors.skinTone;
   const { shoulder, hip, female } = bodyGeom(c);
@@ -124,25 +137,29 @@ const renderTorso = (c: AvatarConfig, uid: string): string => {
     </g>`;
 
   // Arms: fuller skin capsule hanging along the body, ending in a rounded
-  // mitten hand; a short puffed sleeve caps the shoulder.
+  // mitten hand; a short puffed sleeve caps the shoulder. Thicker for male.
+  const armSkin = female ? 14 : 17;
+  const armOL = armSkin + 5;
+  const sleeveP = female ? 19 : 23;
+  const sleeveOL = sleeveP + 5;
   const arm = (dir: 1 | -1) => {
     const topX = CX + dir * (shoulder - 2);
     const midX = CX + dir * (shoulder + 9);
     const handX = CX + dir * (shoulder + 6);
     const armPath = `M${topX} 196 Q${midX} 226 ${handX} 250`;
     return `
-      <path d="${armPath}" fill="none" stroke="${OL}" stroke-width="20" stroke-linecap="round"/>
-      <path d="${armPath}" fill="none" stroke="${skin}" stroke-width="15" stroke-linecap="round"/>
+      <path d="${armPath}" fill="none" stroke="${OL}" stroke-width="${armOL}" stroke-linecap="round"/>
+      <path d="${armPath}" fill="none" stroke="${skin}" stroke-width="${armSkin}" stroke-linecap="round"/>
       <path d="${armPath}" fill="none" stroke="${lighten(skin, 12)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
       <ellipse cx="${handX}" cy="256" rx="12" ry="13" fill="${skin}" ${stroke}/>
       <ellipse cx="${handX - dir * 9}" cy="252" rx="5.5" ry="6.5" fill="${skin}" ${stroke}/>
-      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${OL}" stroke-width="25" stroke-linecap="round"/>
-      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${p}" stroke-width="20" stroke-linecap="round"/>
+      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${OL}" stroke-width="${sleeveOL}" stroke-linecap="round"/>
+      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${p}" stroke-width="${sleeveP}" stroke-linecap="round"/>
       <path d="M${CX + dir * (shoulder - 6)} 190 Q${CX + dir * (shoulder + 10)} 194 ${midX - dir * 1} 214" fill="none" stroke="${lighten(p, 14)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
       <path d="M${CX + dir * (shoulder + 2)} 214 Q${midX} 218 ${midX + dir * 3} 222" fill="none" stroke="${darken(p, 16)}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>`;
   };
 
-  return `${arm(-1)}${arm(1)}${torso}${outfitDetail(c, sl, sr)}`;
+  return { armL: arm(-1), armR: arm(1), body: `${torso}${outfitDetail(c, sl, sr)}` };
 };
 
 // Per-outfit decoration on the torso (neckline + one motif).
@@ -163,11 +180,15 @@ const outfitDetail = (c: AvatarConfig, sl: number, sr: number): string => {
   return details[c.selection.outfit] || neckline;
 };
 
-const renderNeck = (c: AvatarConfig): string =>
-  `<path d="M138 148 L138 184 Q150 192 162 184 L162 148 Z" fill="${c.colors.skinTone}" ${stroke}/>`;
+const renderNeck = (c: AvatarConfig): string => {
+  // Male: thicker, squarer neck. Female: slimmer.
+  const w = c.selection.gender === 'male' ? 18 : 12;
+  const l = CX - w, r = CX + w;
+  return `<path d="M${l} 148 L${l} 184 Q${CX} 191 ${r} 184 L${r} 148 Z" fill="${c.colors.skinTone}" ${stroke}/>`;
+};
 
 const renderEars = (c: AvatarConfig): string => {
-  const { sideX } = headGeom(c.selection.head);
+  const { sideX } = headGeom(c.selection.head, c.selection.gender);
   const ear = (x: number) => `<circle cx="${x}" cy="104" r="10" fill="${c.colors.skinTone}" ${stroke}/>`;
   return `${ear(CX - sideX)}${ear(CX + sideX)}`;
 };
@@ -176,7 +197,12 @@ const renderEars = (c: AvatarConfig): string => {
 
 // sideX = half-width at ear level; topY = top of the skull; browW = half-width
 // at the forehead/fringe line (~y88) so the fringe hugs the actual silhouette.
-const headGeom = (shape: string): { sideX: number; topY: number; browW: number; path: string } => {
+// f = a gender jaw/face width factor: male faces render wider/squarer, female
+// narrower. It is baked into sideX/browW (so ears + hair follow) and returned
+// so renderHead can scale the head path itself.
+type HeadGeom = { sideX: number; topY: number; browW: number; path: string; f: number };
+
+const headGeomBase = (shape: string): Omit<HeadGeom, 'f'> => {
   switch (shape) {
     case 'head_oval':
       return { sideX: 56, topY: 36, browW: 52, path: `<ellipse cx="${CX}" cy="100" rx="56" ry="64"` };
@@ -191,8 +217,19 @@ const headGeom = (shape: string): { sideX: number; topY: number; browW: number; 
   }
 };
 
-const renderHead = (c: AvatarConfig): string =>
-  `${headGeom(c.selection.head).path} fill="${c.colors.skinTone}" ${stroke}/>`;
+const headGeom = (shape: string, gender: string): HeadGeom => {
+  const f = gender === 'male' ? 1.06 : 0.95;
+  const b = headGeomBase(shape);
+  return { sideX: Math.round(b.sideX * f), topY: b.topY, browW: b.browW * f, path: b.path, f };
+};
+
+// Horizontal scale about the face centre — widens (male) / narrows (female) the head.
+const headScale = (f: number): string => `transform="matrix(${f} 0 0 1 ${(CX * (1 - f)).toFixed(2)} 0)"`;
+
+const renderHead = (c: AvatarConfig): string => {
+  const { path, f } = headGeom(c.selection.head, c.selection.gender);
+  return `${path} ${headScale(f)} fill="${c.colors.skinTone}" ${stroke}/>`;
+};
 
 /* ------------------------------- face ---------------------------- */
 
@@ -207,14 +244,19 @@ const renderFace = (c: AvatarConfig): string => `
 const renderBrows = (c: AvatarConfig): string => {
   const col = darken(c.colors.hairColor, 5);
   const e = c.selection.expression;
-  const w = c.selection.gender === 'male' ? 7 : 5;
+  const male = c.selection.gender === 'male';
+  const w = male ? 8 : 4.5; // male thicker, female thinner
+  const arch = male ? 1 : 5; // male flatter, female more arched
   let o = 84, i = 82; // outer / inner y
   if (e === 'expr_angry') { o = 80; i = 90; }
   else if (e === 'expr_sad') { o = 90; i = 80; }
   else if (e === 'expr_surprised') { o = 75; i = 73; }
+  // male brows sit lower (closer to the eyes); female higher.
+  const gy = male ? 4 : -2;
+  o += gy; i += gy;
   return `
-    <path d="M${CX - 40} ${o} Q${CX - 28} ${i - 3} ${CX - 14} ${i}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>
-    <path d="M${CX + 14} ${i} Q${CX + 28} ${i - 3} ${CX + 40} ${o}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
+    <path d="M${CX - 40} ${o} Q${CX - 28} ${i - arch} ${CX - 14} ${i}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>
+    <path d="M${CX + 14} ${i} Q${CX + 28} ${i - arch} ${CX + 40} ${o}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`;
 };
 
 const renderEyes = (c: AvatarConfig): string => {
@@ -222,14 +264,18 @@ const renderEyes = (c: AvatarConfig): string => {
   const e = c.selection.expression;
   const female = c.selection.gender === 'female';
 
+  // Female: larger, rounder eyes with lashes. Male: smaller, narrower.
+  const rx = female ? 12 : 10;
+  const ry = female ? 14.5 : 11.5;
+  const iris = female ? 7.5 : 6.5;
   const open = (x: number) => {
     const dir = x < CX ? -1 : 1;
     const lash = female
-      ? `<path d="M${x + dir * 10} ${EYE_Y - 9} q${dir * 5} -3 ${dir * 8} 0" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round"/>`
+      ? `<path d="M${x + dir * 11} ${EYE_Y - 10} q${dir * 5} -3 ${dir * 9} 1" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round"/>`
       : '';
     return `
-    <ellipse cx="${x}" cy="${EYE_Y}" rx="11" ry="13" fill="#fff" ${stroke}/>
-    <circle cx="${x}" cy="${EYE_Y + 2}" r="7" fill="${eye}"/>
+    <ellipse cx="${x}" cy="${EYE_Y}" rx="${rx}" ry="${ry}" fill="#fff" ${stroke}/>
+    <circle cx="${x}" cy="${EYE_Y + 2}" r="${iris}" fill="${eye}"/>
     <circle cx="${x}" cy="${EYE_Y + 2}" r="3.5" fill="#1a1512"/>
     <circle cx="${x - 3}" cy="${EYE_Y - 2}" r="2.5" fill="#fff"/>
     ${lash}`;
@@ -253,6 +299,12 @@ const renderNose = (c: AvatarConfig): string =>
 
 const renderMouth = (c: AvatarConfig): string => {
   const e = c.selection.expression;
+  const male = c.selection.gender === 'male';
+  // Female: pinker lip line + a fuller lower lip. Male: plain dark, a touch wider.
+  const lip = male ? OL : '#a24a5b';
+  const mw = male ? 16 : 12;
+  const ms = `fill="none" stroke="${lip}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"`;
+  const lowerLip = male ? '' : `<path d="M${CX - 9} 141 Q${CX} 147 ${CX + 9} 141" fill="none" stroke="#cf7382" stroke-width="4.5" stroke-linecap="round" opacity="0.75"/>`;
   const smile = `
     <path d="M${CX - 24} 132 Q${CX} 137 ${CX + 24} 132 Q${CX + 20} 156 ${CX} 159 Q${CX - 20} 156 ${CX - 24} 132 Z" fill="#8d3746" ${stroke}/>
     <path d="M${CX - 20} 134 Q${CX} 138 ${CX + 20} 134 L${CX + 17} 141 Q${CX} 145 ${CX - 17} 141 Z" fill="#fff"/>
@@ -260,12 +312,12 @@ const renderMouth = (c: AvatarConfig): string => {
   const mouths: Record<string, string> = {
     expr_happy: smile,
     expr_love: smile,
-    expr_neutral: `<path d="M${CX - 15} 138 Q${CX} 146 ${CX + 15} 138" fill="none" ${stroke}/>`,
-    expr_cool: `<path d="M${CX - 14} 138 Q${CX + 4} 148 ${CX + 17} 134" fill="none" ${stroke}/>`,
-    expr_sad: `<path d="M${CX - 14} 144 Q${CX} 134 ${CX + 14} 144" fill="none" ${stroke}/>`,
-    expr_angry: `<path d="M${CX - 14} 142 Q${CX} 137 ${CX + 14} 142" fill="none" ${stroke}/>`,
+    expr_neutral: `<path d="M${CX - mw} 138 Q${CX} 146 ${CX + mw} 138" ${ms}/>${lowerLip}`,
+    expr_cool: `<path d="M${CX - 14} 138 Q${CX + 4} 148 ${CX + 17} 134" ${ms}/>`,
+    expr_sad: `<path d="M${CX - 14} 144 Q${CX} 134 ${CX + 14} 144" ${ms}/>`,
+    expr_angry: `<path d="M${CX - 14} 142 Q${CX} 137 ${CX + 14} 142" ${ms}/>`,
     expr_surprised: `<ellipse cx="${CX}" cy="142" rx="8" ry="11" fill="#8d3746" ${stroke}/>`,
-    expr_wink: `<path d="M${CX - 15} 137 Q${CX} 149 ${CX + 17} 135" fill="none" ${stroke}/>`,
+    expr_wink: `<path d="M${CX - 15} 137 Q${CX} 149 ${CX + 17} 135" ${ms}/>`,
   };
   return mouths[e] || mouths.expr_neutral;
 };
@@ -284,7 +336,7 @@ interface HairLayers { back: string; front: string; }
 const renderHair = (c: AvatarConfig): HairLayers => {
   const col = c.colors.hairColor;
   const hi = lighten(col, 20);
-  const { sideX, topY, browW } = headGeom(c.selection.head);
+  const { sideX, topY, browW } = headGeom(c.selection.head, c.selection.gender);
   // Front cap fitted to the head: peaks above the skull, hugs the temples,
   // and ends in a smooth centre-parted fringe just above the brows.
   const w = browW + 3;
@@ -324,6 +376,27 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       const sheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 18)}" opacity="0.5"/>`;
       return { back: mass, front: `${fringe}${sheen}` };
     }
+    case 'hair_pixie':
+      return { back: '', front: `${cap}<path d="M104 66 Q140 50 178 70" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"/>` };
+    case 'hair_afro': {
+      const mass = `<path d="${scallop(CX, 74, 95, 92, 14)}" fill="${col}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 60, 72, 36, 10)}" fill="${col}"/>`;
+      const sheen = `<path d="${scallop(CX - 28, 54, 36, 28, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      return { back: mass, front: `${fringe}${sheen}` };
+    }
+    case 'hair_mohawk':
+      return { back: '', front: `<path d="M134 62 L140 12 L148 46 L154 8 L160 46 L168 12 L174 62 Q150 54 134 62 Z" fill="${col}" ${stroke}/>` };
+    case 'hair_ponytail':
+      return {
+        back: `<path d="M184 64 Q232 100 224 168 Q216 208 194 216 Q214 188 207 154 Q202 118 174 92 Z" fill="${col}" ${stroke}/><rect x="178" y="58" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`,
+        front: cap,
+      };
+    case 'hair_pigtails': {
+      const puff = (x: number) => `<ellipse cx="${x}" cy="100" rx="20" ry="31" fill="${col}" ${stroke}/><rect x="${x - 7}" y="72" width="14" height="8" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
+      return { back: `${puff(84)}${puff(216)}`, front: cap };
+    }
+    case 'hair_topknot':
+      return { back: `<circle cx="${CX}" cy="20" r="17" fill="${col}" ${stroke}/><rect x="${CX - 9}" y="30" width="18" height="8" rx="4" fill="${darken(col, 20)}"/>`, front: cap };
     default: return { back: back(112, 128), front: cap };
   }
 };
@@ -373,12 +446,46 @@ const braid = (bx: number, col: string): string => {
   return `${seg}${tie}${tassel}`;
 };
 
+/* --------------------------- thumbnails -------------------------- */
+
+// A hairstyle preview: the hair on a neutral, faceless mannequin head, cropped
+// to the head — like Snapchat's hair grid. Used by the creator's hair items.
+export const renderHairThumbnail = (hairId: string, hairColor = '#3D2817', size = 88): string => {
+  const c: AvatarConfig = {
+    id: 'thumb',
+    version: 1,
+    selection: {
+      gender: 'female',
+      body: 'body_standard',
+      head: 'head_round',
+      hair: hairId,
+      outfit: 'outfit_casual',
+      accessories: [],
+      expression: 'expr_neutral',
+    },
+    colors: {
+      skinTone: '#EFCBB4',
+      hairColor,
+      eyeColor: '#6B4423',
+      outfitPrimary: '#cccccc',
+      outfitSecondary: '#cccccc',
+      accentColor: '#cccccc',
+    },
+    createdAt: 0,
+    updatedAt: 0,
+  };
+  const hair = renderHair(c);
+  return `<svg width="${size}" height="${size}" viewBox="54 8 192 192" xmlns="http://www.w3.org/2000/svg">
+    ${hair.back}${renderEars(c)}${renderHead(c)}${hair.front}
+  </svg>`;
+};
+
 /* --------------------------- accessories ------------------------- */
 
 const renderAccessories = (c: AvatarConfig): string => {
   const acc = c.selection.accessories;
   const a = c.colors.accentColor;
-  const { sideX } = headGeom(c.selection.head);
+  const { sideX } = headGeom(c.selection.head, c.selection.gender);
   const has = (id: string) => acc.includes(id);
   let out = '';
 

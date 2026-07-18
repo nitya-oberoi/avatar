@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write src",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@pixiv/three-vrm": "^3.5.5",
@@ -20,6 +22,7 @@
     "react-dom": "^18.2.0",
     "three": "^0.161.0",
     "typescript": "^5.2.0",
+    "zod": "^3.25.76",
     "zustand": "^4.4.0"
   },
   "devDependencies": {
@@ -28,6 +31,7 @@
     "@types/react-dom": "^18.2.0",
     "eslint": "^8.50.0",
     "eslint-config-next": "^14.0.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "vitest": "^2.1.9"
   }
 }

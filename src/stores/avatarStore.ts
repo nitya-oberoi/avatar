@@ -7,8 +7,11 @@ import { create } from 'zustand';
 import { AvatarConfig, AvatarSelection, AvatarColors, HistoryState } from '@apptypes/avatar';
 import { generateUUID, randomItem } from '@lib/utils';
 import { defaultColors, traitCatalog, colorPalettes, uiConfig } from '@config/defaults';
+import { LocalStorageAvatarRepository } from '@/features/avatar/infrastructure/localStorageRepository';
 
 const STORAGE_KEY = 'avatarConfig';
+// Single local user for this app; a real backend would pass the signed-in id.
+const LOCAL_USER = 'local';
 
 // Placeholder identity used for the initial (pre-hydration) config.
 // It MUST be deterministic so the server-rendered HTML and the first
@@ -72,6 +75,11 @@ const createDefaultConfig = (): AvatarConfig => ({
   createdAt: 0,
   updatedAt: 0,
 });
+
+// Persistence goes through the avatar-core repository abstraction (localStorage
+// impl), seeded with the same default so load behaviour is unchanged. Swapping
+// in a backend repository later touches only this line.
+const avatarRepo = new LocalStorageAvatarRepository(createDefaultConfig());
 
 /**
  * Push a new config into history, returning the state slice to set.
@@ -251,36 +259,22 @@ export const useAvatarStore = create<AvatarStore>((set, get) => ({
 
   // Persistence
   saveToLocal: () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(get().config));
-    } catch (e) {
-      console.error('Failed to save avatar to localStorage:', e);
-    }
+    // Fire-and-forget; the repository handles its own error/quota guards.
+    void avatarRepo.saveAvatar(LOCAL_USER, get().config);
   },
 
   loadFromLocal: () => {
-    // Runs client-side only (from a mount effect), so it's safe to use
-    // localStorage, generateUUID(), and Date.now() here.
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed: unknown = JSON.parse(saved);
-        if (isValidConfig(parsed)) {
-          get().setConfig(normalizeConfig(parsed));
-          return;
-        }
+    // Runs client-side only (from a mount effect). The repository validates +
+    // migrates; it returns the seeded default (PLACEHOLDER_ID) when nothing is
+    // stored, in which case we stamp a real id/timestamps now (client-side).
+    void avatarRepo.getCurrentAvatar(LOCAL_USER).then((cfg) => {
+      if (cfg.id === PLACEHOLDER_ID) {
+        const now = Date.now();
+        get().setConfig({ ...cfg, id: generateUUID(), createdAt: now, updatedAt: now });
+      } else {
+        get().setConfig(cfg);
       }
-    } catch (e) {
-      console.error('Failed to load avatar from localStorage:', e);
-    }
-
-    // No valid saved avatar. If we're still on the deterministic
-    // placeholder, stamp it with a real id/timestamps now (client-side).
-    const current = get().config;
-    if (current.id === PLACEHOLDER_ID) {
-      const now = Date.now();
-      get().setConfig({ ...current, id: generateUUID(), createdAt: now, updatedAt: now });
-    }
+    });
   },
 
   clearLocal: () => {
