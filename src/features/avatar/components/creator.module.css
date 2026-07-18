@@ -27,6 +27,10 @@
 .coins { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 8px 10px 8px 14px; font-weight: 700; }
 .coinDot { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe08a, var(--gold)); box-shadow: 0 0 0 2px #a9781f inset; }
 .coinPlus { width: 26px; height: 26px; border-radius: 8px; border: none; background: var(--panel2); color: var(--text); font-size: 16px; cursor: pointer; }
+.tools { display: flex; gap: 8px; }
+.toolBtn { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); font-size: 20px; cursor: pointer; display: grid; place-items: center; }
+.toolBtn:hover:not(:disabled) { background: #26355680; }
+.toolBtn:disabled { opacity: 0.4; cursor: default; }
 .saveBtn { background: linear-gradient(180deg, var(--accent2), var(--accent)); color: #fff; border: none; border-radius: 12px; padding: 12px 22px; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; box-shadow: 0 4px 0 #5a2bb0; transition: transform 0.08s; }
 .saveBtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #5a2bb0; }
 .saveBtn:focus-visible, .catBtn:focus-visible, .card:focus-visible, .animBtn:focus-visible, .swatch:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }

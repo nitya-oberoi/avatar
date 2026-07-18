@@ -32,6 +32,11 @@ export const CreatorScreen: React.FC = () => {
   const randomize = useAvatarStore((s) => s.randomizeAvatar);
   const setConfig = useAvatarStore((s) => s.setConfig);
   const selectTrait = useAvatarStore((s) => s.selectTrait);
+  const undo = useAvatarStore((s) => s.undo);
+  const redo = useAvatarStore((s) => s.redo);
+  const resetAvatar = useAvatarStore((s) => s.resetAvatar);
+  const canUndo = useAvatarStore((s) => s.history.past.length > 0);
+  const canRedo = useAvatarStore((s) => s.history.future.length > 0);
   const gender = config.selection.gender;
 
   const [activeCategoryId, setActiveCategoryId] = useState('body');
@@ -97,7 +102,12 @@ export const CreatorScreen: React.FC = () => {
             {COINS.toLocaleString()}
             <button className={styles.coinPlus} aria-label="Add coins">+</button>
           </div>
-          <button className={styles.coinPlus} onClick={randomize} aria-label="Randomize avatar" title="Randomize" style={{ width: 44, height: 44, fontSize: 20 }}>🎲</button>
+          <div className={styles.tools}>
+            <button className={styles.toolBtn} onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo">↶</button>
+            <button className={styles.toolBtn} onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo">↷</button>
+            <button className={styles.toolBtn} onClick={resetAvatar} aria-label="Reset" title="Reset">⟳</button>
+            <button className={styles.toolBtn} onClick={randomize} aria-label="Randomize avatar" title="Randomize">🎲</button>
+          </div>
           <button className={styles.saveBtn} onClick={onSave}>{saved ? 'SAVED ✓' : 'SAVE AVATAR'}</button>
         </div>
       </header>
