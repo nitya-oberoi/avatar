@@ -21,7 +21,7 @@ export type {
 
 // A customization slot. Single-value slots hold one item id; `accessories`
 // is the one multi-value slot (an avatar can wear several at once).
-export type AvatarSlot = 'body' | 'head' | 'hair' | 'outfit' | 'expression' | 'accessories';
+export type AvatarSlot = 'body' | 'head' | 'hair' | 'top' | 'bottom' | 'shoes' | 'expression' | 'accessories';
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 

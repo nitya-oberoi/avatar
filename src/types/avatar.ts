@@ -4,7 +4,7 @@
  */
 
 // Avatar categories
-export type AvatarCategory = 'body' | 'head' | 'hair' | 'outfit' | 'accessories' | 'expression';
+export type AvatarCategory = 'body' | 'head' | 'hair' | 'top' | 'bottom' | 'shoes' | 'accessories' | 'expression';
 
 // Individual trait types
 export interface TraitOption {
@@ -35,7 +35,9 @@ export interface AvatarSelection {
   body: string;
   head: string;
   hair: string;
-  outfit: string;
+  top: string;
+  bottom: string;
+  shoes: string;
   accessories: string[];
   expression: string;
 }

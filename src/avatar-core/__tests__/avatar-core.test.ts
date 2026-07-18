@@ -31,7 +31,9 @@ const RAW: RawCatalog = {
   bodies: [{ id: 'body_standard', name: 'Standard' }, { id: 'body_slim', name: 'Slim' }],
   heads: [{ id: 'head_round', name: 'Round' }, { id: 'head_oval', name: 'Oval' }],
   hair: [{ id: 'hair_short', name: 'Short' }, { id: 'hair_long', name: 'Long' }],
-  outfits: [{ id: 'outfit_casual', name: 'Casual' }, { id: 'outfit_formal', name: 'Formal' }],
+  tops: [{ id: 'top_tshirt', name: 'T-Shirt' }, { id: 'top_hoodie', name: 'Hoodie' }],
+  bottoms: [{ id: 'bottom_jeans', name: 'Jeans' }, { id: 'bottom_shorts', name: 'Shorts' }],
+  shoes: [{ id: 'shoes_sneakers', name: 'Sneakers' }, { id: 'shoes_boots', name: 'Boots' }],
   accessories: [{ id: 'acc_glasses', name: 'Glasses' }, { id: 'acc_crown', name: 'Crown' }],
   expressions: [{ id: 'expr_neutral', name: 'Neutral' }, { id: 'expr_happy', name: 'Happy' }],
 };

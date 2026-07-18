@@ -73,16 +73,38 @@ export const traitCatalog = {
     { id: 'hair_shaggy', name: 'Shaggy', icon: '🧹' },
   ],
 
-  // Outfit options - complete looks
-  outfits: [
-    { id: 'outfit_casual', name: 'Casual', icon: '👕' },
-    { id: 'outfit_formal', name: 'Formal', icon: '🤵' },
-    { id: 'outfit_sporty', name: 'Sporty', icon: '🏃' },
-    { id: 'outfit_magical', name: 'Magical', icon: '✨' },
-    { id: 'outfit_explorer', name: 'Explorer', icon: '🧭' },
-    { id: 'outfit_futuristic', name: 'Futuristic', icon: '🤖' },
-    { id: 'outfit_vintage', name: 'Vintage', icon: '📻' },
-    { id: 'outfit_boho', name: 'Boho', icon: '🌻' },
+  // Tops - mix-and-match upper garments
+  tops: [
+    { id: 'top_tshirt', name: 'T-Shirt', icon: '👕' },
+    { id: 'top_longsleeve', name: 'Long Sleeve', icon: '🥼' },
+    { id: 'top_hoodie', name: 'Hoodie', icon: '🧥' },
+    { id: 'top_shirt', name: 'Shirt', icon: '👔' },
+    { id: 'top_polo', name: 'Polo', icon: '🎽' },
+    { id: 'top_jersey', name: 'Jersey', icon: '🏀' },
+    { id: 'top_tank', name: 'Tank Top', icon: '🎗️' },
+    { id: 'top_crop', name: 'Crop Top', icon: '✂️' },
+    { id: 'top_blouse', name: 'Blouse', icon: '🌸' },
+    { id: 'top_star', name: 'Star Tee', icon: '⭐' },
+  ],
+
+  // Bottoms - pants, shorts, skirts
+  bottoms: [
+    { id: 'bottom_jeans', name: 'Jeans', icon: '👖' },
+    { id: 'bottom_pants', name: 'Pants', icon: '🩳' },
+    { id: 'bottom_shorts', name: 'Shorts', icon: '🩳' },
+    { id: 'bottom_joggers', name: 'Joggers', icon: '🏃' },
+    { id: 'bottom_cargo', name: 'Cargo', icon: '🪖' },
+    { id: 'bottom_skirt', name: 'Skirt', icon: '👗' },
+  ],
+
+  // Shoes
+  shoes: [
+    { id: 'shoes_sneakers', name: 'Sneakers', icon: '👟' },
+    { id: 'shoes_stripe', name: 'Stripe Kicks', icon: '🛼' },
+    { id: 'shoes_boots', name: 'Boots', icon: '🥾' },
+    { id: 'shoes_slides', name: 'Slides', icon: '🩴' },
+    { id: 'shoes_dress', name: 'Dress Shoes', icon: '👞' },
+    { id: 'shoes_heels', name: 'Heels', icon: '👠' },
   ],
 
   // Accessories - optional additions (multi-select)
@@ -249,69 +271,3 @@ export const uiConfig = {
   brandSecondary: '#764ba2',
   backgroundColor: '#f5f5f5',
 };
-
-/**
- * Quick presets - full avatar configurations
- * These are "looks" users can quickly apply
- * Useful for inspiration or starting templates
- */
-
-export const avatarPresets = [
-  {
-    name: 'Adventure Seeker',
-    selection: {
-      body: 'body_athletic',
-      head: 'head_square',
-      hair: 'hair_short',
-      outfit: 'outfit_explorer',
-      accessories: ['acc_backpack', 'acc_hat'],
-      expression: 'expr_happy',
-    },
-    colors: {
-      skinTone: '#D4A574',
-      hairColor: '#5C4033',
-      eyeColor: '#8D6E63',
-      outfitPrimary: '#8D6E63',
-      outfitSecondary: '#D7CCC8',
-      accentColor: '#FF6F00',
-    },
-  },
-  {
-    name: 'Magical Wizard',
-    selection: {
-      body: 'body_slim',
-      head: 'head_heart',
-      hair: 'hair_wavy',
-      outfit: 'outfit_magical',
-      accessories: ['acc_staff', 'acc_crown'],
-      expression: 'expr_cool',
-    },
-    colors: {
-      skinTone: '#F5E6D3',
-      hairColor: '#3F2C1D',
-      eyeColor: '#7851A9',
-      outfitPrimary: '#4A148C',
-      outfitSecondary: '#7B1FA2',
-      accentColor: '#FFD700',
-    },
-  },
-  {
-    name: 'Chill Vibe',
-    selection: {
-      body: 'body_standard',
-      head: 'head_round',
-      hair: 'hair_curly',
-      outfit: 'outfit_casual',
-      accessories: ['acc_sunglasses'],
-      expression: 'expr_happy',
-    },
-    colors: {
-      skinTone: '#E8B4A0',
-      hairColor: '#8B4513',
-      eyeColor: '#D4A574',
-      outfitPrimary: '#FF6B9D',
-      outfitSecondary: '#FFC857',
-      accentColor: '#1E88E5',
-    },
-  },
-];

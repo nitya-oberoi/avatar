@@ -21,7 +21,9 @@ export interface RawCatalog {
   bodies: RawTrait[];
   heads: RawTrait[];
   hair: RawTrait[];
-  outfits: RawTrait[];
+  tops: RawTrait[];
+  bottoms: RawTrait[];
+  shoes: RawTrait[];
   accessories: RawTrait[];
   expressions: RawTrait[];
 }
@@ -31,7 +33,9 @@ export type ItemMetaOverrides = Record<string, Partial<Omit<AvatarItem, 'id' | '
 
 const SLOT_COLOR_KEYS: Partial<Record<AvatarSlot, string[]>> = {
   hair: ['hairColor'],
-  outfit: ['outfitPrimary', 'outfitSecondary'],
+  top: ['outfitPrimary'],
+  bottom: ['outfitSecondary'],
+  shoes: ['accentColor'],
   accessories: ['accentColor'],
   head: ['skinTone'],
 };
@@ -65,7 +69,9 @@ export const buildCatalog = (raw: RawCatalog, overrides: ItemMetaOverrides = {})
     ...toItems(raw.bodies, 'body', overrides),
     ...toItems(raw.heads, 'head', overrides),
     ...toItems(raw.hair, 'hair', overrides),
-    ...toItems(raw.outfits, 'outfit', overrides),
+    ...toItems(raw.tops, 'top', overrides),
+    ...toItems(raw.bottoms, 'bottom', overrides),
+    ...toItems(raw.shoes, 'shoes', overrides),
     ...toItems(raw.accessories, 'accessories', overrides),
     ...toItems(raw.expressions, 'expression', overrides),
   ];

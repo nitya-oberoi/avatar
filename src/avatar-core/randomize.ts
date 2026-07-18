@@ -35,7 +35,9 @@ export const randomizeAvatar = (
     body: pick(catalog.bySlot.body, rng)?.id ?? '',
     head: pick(catalog.bySlot.head, rng)?.id ?? '',
     hair: pick(catalog.bySlot.hair, rng)?.id ?? '',
-    outfit: pick(catalog.bySlot.outfit, rng)?.id ?? '',
+    top: pick(catalog.bySlot.top, rng)?.id ?? '',
+    bottom: pick(catalog.bySlot.bottom, rng)?.id ?? '',
+    shoes: pick(catalog.bySlot.shoes, rng)?.id ?? '',
     expression: pick(catalog.bySlot.expression, rng)?.id ?? '',
     accessories: [] as string[],
   };

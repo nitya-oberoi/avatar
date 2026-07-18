@@ -93,32 +93,83 @@ const bodyGeom = (c: AvatarConfig) => {
 
 const renderLegs = (c: AvatarConfig, uid: string): { left: string; right: string } => {
   const pants = c.colors.outfitSecondary;
+  const skin = c.colors.skinTone;
   const shade = darken(pants, 13);
-  const shoes = c.colors.accentColor;
   const { hip, weight } = bodyGeom(c);
+  const bottom = c.selection.bottom;
   // legs thicken with build and spread with the hips
   const legW = Math.round(Math.max(17, Math.min(42, 24 + (weight - 1) * 32)));
   const spread = Math.round(Math.max(hip * 0.3, legW * 0.6));
   const cxL = CX - spread, cxR = CX + spread;
-  // each leg: base fill + inner-edge shadow + outer highlight (clipped to leg)
-  const leg = (cx: number, i: number) => {
-    const x = Math.round(cx - legW / 2);
+
+  // A vertical segment of leg (garment or skin) with edge shading.
+  const seg = (cx: number, i: number, y0: number, y1: number, w: number, col: string, extra = '') => {
+    const x = Math.round(cx - w / 2);
+    const id = `leg-${uid}-${i}-${y0}`;
     return `
-    <rect x="${x}" y="258" width="${legW}" height="90" rx="12" fill="${pants}" ${stroke}/>
-    <clipPath id="leg-${uid}-${i}"><rect x="${x}" y="258" width="${legW}" height="90" rx="12"/></clipPath>
-    <g clip-path="url(#leg-${uid}-${i})">
-      <rect x="${x + legW - 11}" y="258" width="11" height="90" fill="${shade}" opacity="0.5"/>
-      <rect x="${x + 2}" y="258" width="4" height="90" fill="${lighten(pants, 16)}" opacity="0.5"/>
+    <rect x="${x}" y="${y0}" width="${w}" height="${y1 - y0}" rx="11" fill="${col}" ${stroke}/>
+    <clipPath id="${id}"><rect x="${x}" y="${y0}" width="${w}" height="${y1 - y0}" rx="11"/></clipPath>
+    <g clip-path="url(#${id})">
+      <rect x="${x + w - 10}" y="${y0}" width="10" height="${y1 - y0}" fill="${darken(col, 13)}" opacity="0.5"/>
+      <rect x="${x + 2}" y="${y0}" width="4" height="${y1 - y0}" fill="${lighten(col, 16)}" opacity="0.5"/>
+      ${extra}
     </g>`;
   };
-  // rounded shoe that overlaps the leg bottom, scaled to the leg width
-  const sw = legW * 0.56 + 3;
-  const shoe = (cx: number) => `
-    <path d="M${cx - sw} 340 Q${cx - sw - 2} 360 ${cx - sw * 0.6} 367 Q${cx} 370 ${cx + sw * 0.6} 367 Q${cx + sw + 2} 360 ${cx + sw} 340 Z" fill="${shoes}" ${stroke}/>
-    <path d="M${cx - sw + 1} 361 Q${cx} 366 ${cx + sw - 1} 361" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
-    <path d="M${cx - sw * 0.66} 348 Q${cx} 351 ${cx + sw * 0.66} 348" fill="none" stroke="${lighten(shoes, 22)}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`;
-  return { left: `${leg(cxL, 0)}${shoe(cxL)}`, right: `${leg(cxR, 1)}${shoe(cxR)}` };
+
+  // Bottom garments (drawn per leg; the skirt body itself is added by renderTorso).
+  const garment = (cx: number, i: number): string => {
+    switch (bottom) {
+      case 'bottom_shorts':
+        return `${seg(cx, i, 258, 304, legW, pants)}${seg(cx, i, 300, 348, legW - 6, skin)}`;
+      case 'bottom_skirt':
+        return seg(cx, i, 258, 348, legW - 6, skin); // bare legs; skirt covers the top
+      case 'bottom_joggers':
+        return `${seg(cx, i, 258, 336, legW, pants)}${seg(cx, i, 334, 348, legW - 4, darken(pants, 18))}`;
+      case 'bottom_cargo': {
+        const x = Math.round(cx - legW / 2);
+        const pocket = `<rect x="${x + 3}" y="290" width="${legW - 6}" height="13" rx="3" fill="${darken(pants, 10)}" stroke="${OL}" stroke-width="2"/>`;
+        return `${seg(cx, i, 258, 348, legW, pants)}${pocket}`;
+      }
+      case 'bottom_jeans': {
+        const stitch = `<path d="M${cx - legW / 2 + 4} 268 Q${cx} 274 ${cx + legW / 2 - 4} 268" fill="none" stroke="${lighten(pants, 26)}" stroke-width="2" stroke-dasharray="3 3" opacity="0.8"/>`;
+        return `${seg(cx, i, 258, 348, legW, pants, '')}${stitch}`;
+      }
+      default: // bottom_pants
+        return seg(cx, i, 258, 348, legW, pants);
+    }
+  };
+
+  return { left: `${garment(cxL, 0)}${renderShoe(c, cxL, legW)}`, right: `${garment(cxR, 1)}${renderShoe(c, cxR, legW)}` };
 };
+
+// Shoe styles, drawn per foot and scaled to the leg width.
+const renderShoe = (c: AvatarConfig, cx: number, legW: number): string => {
+  const col = c.colors.accentColor;
+  const sw = legW * 0.56 + 3;
+  const base = (fill: string, topY = 340) => `
+    <path d="M${cx - sw} ${topY} Q${cx - sw - 2} 360 ${cx - sw * 0.6} 367 Q${cx} 370 ${cx + sw * 0.6} 367 Q${cx + sw + 2} 360 ${cx + sw} ${topY} Z" fill="${fill}" ${stroke}/>`;
+  const soleLine = `<path d="M${cx - sw + 1} 361 Q${cx} 366 ${cx + sw - 1} 361" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>`;
+  const sheen = `<path d="M${cx - sw * 0.66} 348 Q${cx} 351 ${cx + sw * 0.66} 348" fill="none" stroke="${lighten(col, 22)}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`;
+
+  switch (c.selection.shoes) {
+    case 'shoes_stripe':
+      return `${base(col)}<path d="M${cx - sw} 356 Q${cx} 362 ${cx + sw} 356 L${cx + sw} 364 Q${cx} 370 ${cx - sw} 364 Z" fill="#ffffff" stroke="${OL}" stroke-width="2"/><path d="M${cx - sw * 0.5} 344 L${cx + sw * 0.2} 352" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>`;
+    case 'shoes_boots':
+      return `${base(darken(col, 8), 322)}<path d="M${cx - sw} 336 Q${cx} 342 ${cx + sw} 336" fill="none" stroke="${OL}" stroke-width="2.5" opacity="0.5"/><rect x="${cx - sw * 0.5}" y="326" width="${sw}" height="4" rx="2" fill="${darken(col, 25)}"/>${soleLine}`;
+    case 'shoes_slides':
+      return `${seg2(cx, sw, c.colors.skinTone)}<path d="M${cx - sw} 352 Q${cx} 344 ${cx + sw} 352 L${cx + sw} 360 Q${cx} 353 ${cx - sw} 360 Z" fill="${col}" ${stroke}/><path d="M${cx - sw - 1} 364 Q${cx} 370 ${cx + sw + 1} 364 L${cx + sw} 368 Q${cx} 373 ${cx - sw} 368 Z" fill="${darken(col, 15)}" ${stroke}/>`;
+    case 'shoes_dress':
+      return `${base(darken(col, 20))}<path d="M${cx - sw * 0.5} 346 Q${cx} 350 ${cx + sw * 0.5} 346" fill="none" stroke="${lighten(col, 30)}" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>${soleLine}`;
+    case 'shoes_heels':
+      return `<path d="M${cx - sw * 0.8} 342 Q${cx - sw} 358 ${cx - sw * 0.5} 364 L${cx + sw * 0.7} 364 Q${cx + sw} 356 ${cx + sw * 0.7} 342 Z" fill="${col}" ${stroke}/><rect x="${cx + sw * 0.25}" y="362" width="5" height="9" rx="2" fill="${col}" ${stroke}/><path d="M${cx - sw * 0.5} 364 L${cx - sw * 0.15} 369 L${cx + sw * 0.1} 364 Z" fill="${col}" ${stroke}/>`;
+    default: // shoes_sneakers
+      return `${base(col)}${soleLine}${sheen}`;
+  }
+};
+
+// bare foot/ankle behind open footwear (slides)
+const seg2 = (cx: number, sw: number, skin: string): string =>
+  `<path d="M${cx - sw * 0.7} 340 Q${cx - sw * 0.8} 360 ${cx - sw * 0.4} 366 Q${cx} 370 ${cx + sw * 0.5} 365 Q${cx + sw * 0.8} 358 ${cx + sw * 0.7} 340 Z" fill="${skin}" ${stroke}/>`;
 
 const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string; body: string } => {
   const p = c.colors.outfitPrimary;
@@ -128,14 +179,25 @@ const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string
   const sl = CX - shoulder, sr = CX + shoulder;
   const hl = CX - hip, hr = CX + hip;
 
-  // Torso: female gets a waist pinch, male stays straight.
+  const top = c.selection.top;
+  const crop = top === 'top_crop';
+  // Torso: female gets a waist pinch, male stays straight. Crop tops end high,
+  // showing a skin midriff above the waistband.
+  const bot = crop ? 236 : 264;
   const torsoPath = female
-    ? `M${sl} 182 Q${CX} 172 ${sr} 182 Q${sr + 4} 212 ${sr - 8} 232 Q${hr} 248 ${hr} 264 L${hl} 264 Q${hl} 248 ${sl + 8} 232 Q${sl - 4} 212 ${sl} 182 Z`
-    : `M${sl} 182 Q${CX} 170 ${sr} 182 Q${sr + 6} 224 ${sr - 4} 264 L${sl + 4} 264 Q${sl - 6} 224 ${sl} 182 Z`;
+    ? `M${sl} 182 Q${CX} 172 ${sr} 182 Q${sr + 4} 212 ${sr - 8} 232 Q${hr} 248 ${hr} ${bot} L${hl} ${bot} Q${hl} 248 ${sl + 8} 232 Q${sl - 4} 212 ${sl} 182 Z`
+    : `M${sl} 182 Q${CX} 170 ${sr} 182 Q${sr + 6} 224 ${sr - 4} ${bot} L${sl + 4} ${bot} Q${sl - 6} 224 ${sl} 182 Z`;
+  // skin midriff behind a crop top, and a skirt behind everything when worn
+  const midriff = crop
+    ? `<path d="M${CX - hip + 8} 228 Q${CX} 236 ${CX + hip - 8} 228 L${CX + hip - 6} 262 L${CX - hip + 6} 262 Z" fill="${skin}" ${stroke}/>`
+    : '';
+  const skirt = c.selection.bottom === 'bottom_skirt'
+    ? `<path d="M${CX - hip + 4} 252 L${CX - hip - 12} 306 Q${CX} 316 ${CX + hip + 12} 306 L${CX + hip - 4} 252 Z" fill="${c.colors.outfitSecondary}" ${stroke}/>
+       <path d="M${CX - hip + 2} 300 Q${CX} 310 ${CX + hip - 2} 300" fill="none" stroke="${darken(c.colors.outfitSecondary, 15)}" stroke-width="3" opacity="0.5"/>`
+    : '';
   // base fill + cel-shading clipped to the shirt (light top-left)
   const dk = darken(p, 15);
-  const bot = 264;
-  const torso = `<path d="${torsoPath}" fill="${p}" ${stroke}/>
+  const torso = `${skirt}${midriff}<path d="${torsoPath}" fill="${p}" ${stroke}/>
     <clipPath id="torso-${uid}"><path d="${torsoPath}"/></clipPath>
     <g clip-path="url(#torso-${uid})">
       <!-- right-side body shadow (light from top-left) -->
@@ -154,8 +216,16 @@ const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string
       <path d="M${CX - 17} 183 Q${CX} 196 ${CX + 17} 183 Q${CX} 204 ${CX - 17} 183 Z" fill="${dk}" opacity="0.3"/>
     </g>`;
 
-  // Arms: fuller skin capsule hanging along the body, ending in a rounded
-  // mitten hand; a short puffed sleeve caps the shoulder. Thicker for male.
+  // Arms: skin capsule ending in a mitten hand, plus a sleeve whose length
+  // depends on the top: none (tank), short cap (tees), or full-length.
+  const SLEEVES: Record<string, 'none' | 'short' | 'long'> = {
+    top_tank: 'none',
+    top_longsleeve: 'long',
+    top_hoodie: 'long',
+    top_shirt: 'long',
+    top_blouse: 'short',
+  };
+  const sleeveMode = SLEEVES[top] ?? 'short';
   const armSkin = (female ? 14 : 17) + wAdj;
   const armOL = armSkin + 5;
   const sleeveP = (female ? 19 : 23) + wAdj;
@@ -165,37 +235,57 @@ const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string
     const midX = CX + dir * (shoulder + 9);
     const handX = CX + dir * (shoulder + 6);
     const armPath = `M${topX} 196 Q${midX} 226 ${handX} 250`;
+    const shortSleeve = `
+      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${OL}" stroke-width="${sleeveOL}" stroke-linecap="round"/>
+      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${p}" stroke-width="${sleeveP}" stroke-linecap="round"/>
+      <path d="M${CX + dir * (shoulder - 6)} 190 Q${CX + dir * (shoulder + 10)} 194 ${midX - dir * 1} 214" fill="none" stroke="${lighten(p, 14)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+      <path d="M${CX + dir * (shoulder + 2)} 214 Q${midX} 218 ${midX + dir * 3} 222" fill="none" stroke="${darken(p, 16)}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>`;
+    const longSleeve = `
+      <path d="${armPath}" fill="none" stroke="${OL}" stroke-width="${armOL}" stroke-linecap="round"/>
+      <path d="${armPath}" fill="none" stroke="${p}" stroke-width="${armSkin + 1}" stroke-linecap="round"/>
+      <path d="${armPath}" fill="none" stroke="${lighten(p, 14)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
     return `
       <path d="${armPath}" fill="none" stroke="${OL}" stroke-width="${armOL}" stroke-linecap="round"/>
       <path d="${armPath}" fill="none" stroke="${skin}" stroke-width="${armSkin}" stroke-linecap="round"/>
       <path d="${armPath}" fill="none" stroke="${lighten(skin, 12)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
       <ellipse cx="${handX}" cy="256" rx="12" ry="13" fill="${skin}" ${stroke}/>
       <ellipse cx="${handX - dir * 9}" cy="252" rx="5.5" ry="6.5" fill="${skin}" ${stroke}/>
-      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${OL}" stroke-width="${sleeveOL}" stroke-linecap="round"/>
-      <path d="M${CX + dir * (shoulder - 8)} 184 Q${CX + dir * (shoulder + 14)} 188 ${midX} 216" fill="none" stroke="${p}" stroke-width="${sleeveP}" stroke-linecap="round"/>
-      <path d="M${CX + dir * (shoulder - 6)} 190 Q${CX + dir * (shoulder + 10)} 194 ${midX - dir * 1} 214" fill="none" stroke="${lighten(p, 14)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
-      <path d="M${CX + dir * (shoulder + 2)} 214 Q${midX} 218 ${midX + dir * 3} 222" fill="none" stroke="${darken(p, 16)}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>`;
+      ${sleeveMode === 'long' ? longSleeve : sleeveMode === 'short' ? shortSleeve : ''}
+      ${sleeveMode === 'long' ? `<ellipse cx="${handX}" cy="256" rx="12" ry="13" fill="${skin}" ${stroke}/><ellipse cx="${handX - dir * 9}" cy="252" rx="5.5" ry="6.5" fill="${skin}" ${stroke}/>` : ''}`;
   };
 
-  return { armL: arm(-1), armR: arm(1), body: `${torso}${outfitDetail(c, sl, sr)}` };
+  return { armL: arm(-1), armR: arm(1), body: `${torso}${topDetail(c, sl, sr, bot)}` };
 };
 
-// Per-outfit decoration on the torso (neckline + one motif).
-const outfitDetail = (c: AvatarConfig, sl: number, sr: number): string => {
-  const s = c.colors.outfitSecondary;
+// Per-top decoration: neckline, plackets, hoods, numbers, bows.
+const topDetail = (c: AvatarConfig, sl: number, sr: number, bot: number): string => {
   const a = c.colors.accentColor;
-  const neckline = `<path d="M${CX - 16} 182 Q${CX} 194 ${CX + 16} 182" fill="none" ${stroke}/>`;
-  const details: Record<string, string> = {
-    outfit_casual: neckline,
-    outfit_formal: `<path d="M${CX - 14} 182 L${CX} 202 L${CX + 14} 182" fill="none" ${stroke}/><path d="M${CX - 4} 200 L${CX} 240 L${CX + 4} 200 Z" fill="${a}" ${stroke}/>`,
-    outfit_sporty: `${neckline}<path d="M${CX} 196 L${CX} 262" stroke="${s}" stroke-width="4"/><path d="M${sl + 6} 210 L${sl + 14} 210 M${sr - 14} 210 L${sr - 6} 210" stroke="${s}" stroke-width="4"/>`,
-    outfit_magical: `${neckline}<path d="M${CX} 210 l4.5 10 11 1.5 -8 8 2 11 -9.5 -5.5 -9.5 5.5 2 -11 -8 -8 11 -1.5 Z" fill="${a}" ${stroke}/>`,
-    outfit_explorer: `${neckline}<circle cx="${CX}" cy="206" r="3.5" fill="${a}"/><circle cx="${CX}" cy="222" r="3.5" fill="${a}"/><circle cx="${CX}" cy="238" r="3.5" fill="${a}"/>`,
-    outfit_futuristic: `<path d="M${CX - 14} 182 L${CX} 200 L${CX + 14} 182" fill="none" ${stroke}/><path d="M${sl + 4} 250 L${sr - 4} 250" stroke="${a}" stroke-width="5"/><circle cx="${CX}" cy="222" r="6" fill="${a}" ${stroke}/>`,
-    outfit_vintage: `${neckline}<path d="M${sl + 2} 236 L${sr - 2} 236" stroke="${s}" stroke-width="6"/>`,
-    outfit_boho: `${neckline}<circle cx="${CX}" cy="206" r="4" fill="${a}"/><circle cx="${CX - 12}" cy="212" r="3" fill="${a}"/><circle cx="${CX + 12}" cy="212" r="3" fill="${a}"/>`,
+  const p = c.colors.outfitPrimary;
+  const dk = darken(p, 18);
+  const crew = `<path d="M${CX - 16} 182 Q${CX} 194 ${CX + 16} 182" fill="none" ${stroke}/>`;
+  const vneck = `<path d="M${CX - 14} 182 L${CX} 202 L${CX + 14} 182" fill="none" ${stroke}/>`;
+  const collar = `<path d="M${CX - 16} 181 L${CX - 4} 196 L${CX - 16} 196 Z" fill="#ffffff" ${stroke}/><path d="M${CX + 16} 181 L${CX + 4} 196 L${CX + 16} 196 Z" fill="#ffffff" ${stroke}/>`;
+  const placket = (n: number, y0: number, gap: number) => {
+    let btns = `<path d="M${CX} ${y0 - 4} L${CX} ${bot - 6}" stroke="${dk}" stroke-width="2.5" opacity="0.6"/>`;
+    for (let i = 0; i < n; i++) btns += `<circle cx="${CX}" cy="${y0 + i * gap}" r="2.8" fill="${dk}"/>`;
+    return btns;
   };
-  return details[c.selection.outfit] || neckline;
+  const details: Record<string, string> = {
+    top_tshirt: crew,
+    top_star: `${crew}<path d="M${CX} 208 l5 11 12 1.7 -8.7 8.7 2.2 12 -10.5 -6 -10.5 6 2.2 -12 -8.7 -8.7 12 -1.7 Z" fill="${a}" ${stroke}/>`,
+    top_longsleeve: crew,
+    top_hoodie: `<path d="M${CX - 22} 180 Q${CX} 202 ${CX + 22} 180 Q${CX + 12} 206 ${CX - 12} 206 Q${CX - 22} 196 ${CX - 22} 180 Z" fill="${dk}" ${stroke}/>
+      <path d="M${CX - 8} 200 L${CX - 8} 226 M${CX + 8} 200 L${CX + 8} 226" stroke="${lighten(p, 24)}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M${sl + 14} ${bot - 26} L${sr - 14} ${bot - 26} L${sr - 18} ${bot - 4} L${sl + 18} ${bot - 4} Z" fill="${darken(p, 8)}" stroke="${OL}" stroke-width="2.5" opacity="0.9"/>`,
+    top_shirt: `${collar}${placket(3, 206, 22)}`,
+    top_polo: `${collar}${placket(2, 202, 14)}`,
+    top_jersey: `${vneck}<text x="${CX}" y="${bot - 22}" font-family="Arial Black, sans-serif" font-size="34" font-weight="900" text-anchor="middle" fill="#ffffff" stroke="${OL}" stroke-width="1.5">9</text>
+      <path d="M${sl + 4} 190 L${sl + 12} 198 M${sr - 12} 198 L${sr - 4} 190" stroke="${a}" stroke-width="5" stroke-linecap="round"/>`,
+    top_tank: `<path d="M${CX - 18} 180 Q${CX} 198 ${CX + 18} 180" fill="none" ${stroke}/>`,
+    top_crop: crew,
+    top_blouse: `${crew}<path d="M${CX - 7} 196 Q${CX} 190 ${CX + 7} 196 Q${CX} 204 ${CX - 7} 196 Z" fill="${a}" ${stroke}/><circle cx="${CX}" cy="196" r="2.2" fill="${dk}"/>`,
+  };
+  return details[c.selection.top] || crew;
 };
 
 const renderNeck = (c: AvatarConfig): string => {
@@ -578,7 +668,9 @@ export const renderHairThumbnail = (hairId: string, hairColor = '#3D2817', size 
       body: 'body_standard',
       head: 'head_round',
       hair: hairId,
-      outfit: 'outfit_casual',
+      top: 'top_tshirt',
+      bottom: 'bottom_jeans',
+      shoes: 'shoes_sneakers',
       accessories: [],
       expression: 'expr_neutral',
     },
@@ -612,7 +704,9 @@ export const renderHeadThumbnail = (headId: string, skinTone = '#EFCBB4', size =
       body: 'body_standard',
       head: headId,
       hair: 'hair_short',
-      outfit: 'outfit_casual',
+      top: 'top_tshirt',
+      bottom: 'bottom_jeans',
+      shoes: 'shoes_sneakers',
       accessories: [],
       expression: 'expr_happy',
     },
@@ -642,7 +736,9 @@ const thumbBase = (sel: Partial<AvatarSelection>, colors: AvatarColors): AvatarC
     body: 'body_standard',
     head: 'head_round',
     hair: 'hair_short',
-    outfit: 'outfit_casual',
+    top: 'top_tshirt',
+    bottom: 'bottom_jeans',
+    shoes: 'shoes_sneakers',
     accessories: [],
     expression: 'expr_happy',
     ...sel,
@@ -674,12 +770,32 @@ export const renderAccessoryThumbnail = (accId: string, colors: AvatarColors): s
 export const renderBodyThumbnail = (bodyId: string, colors: AvatarColors): string =>
   renderAvatarSVG(thumbBase({ body: bodyId }, colors), 96);
 
-// Outfit preview: the torso wearing the outfit (its neckline/motif).
-export const renderOutfitThumbnail = (outfitId: string, colors: AvatarColors): string => {
-  const c = thumbBase({ outfit: outfitId }, colors);
-  const t = renderTorso(c, `ot-${outfitId}`);
+// Top preview: the torso wearing the garment (Snapchat-style partial mannequin).
+export const renderTopThumbnail = (topId: string, colors: AvatarColors): string => {
+  const c = thumbBase({ top: topId }, colors);
+  const t = renderTorso(c, `ot-${topId}`);
   return `<svg width="88" height="88" viewBox="74 170 152 114" xmlns="http://www.w3.org/2000/svg">
     ${t.armL}${t.armR}${t.body}
+  </svg>`;
+};
+
+// Bottom preview: the legs wearing the garment.
+export const renderBottomThumbnail = (bottomId: string, colors: AvatarColors): string => {
+  const c = thumbBase({ bottom: bottomId }, colors);
+  const legs = renderLegs(c, `bt-${bottomId}`);
+  // skirt lives in the torso layer, so include the torso body behind the legs
+  const skirt = bottomId === 'bottom_skirt' ? renderTorso(c, `bt2-${bottomId}`).body : '';
+  return `<svg width="88" height="88" viewBox="86 240 128 140" xmlns="http://www.w3.org/2000/svg">
+    ${legs.left}${legs.right}${skirt}
+  </svg>`;
+};
+
+// Shoes preview: ankles + the footwear.
+export const renderShoesThumbnail = (shoesId: string, colors: AvatarColors): string => {
+  const c = thumbBase({ shoes: shoesId }, colors);
+  const legs = renderLegs(c, `sh-${shoesId}`);
+  return `<svg width="88" height="88" viewBox="96 300 108 80" xmlns="http://www.w3.org/2000/svg">
+    ${legs.left}${legs.right}
   </svg>`;
 };
 

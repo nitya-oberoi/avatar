@@ -46,9 +46,17 @@ export const TraitSelector: React.FC<TraitSelectorProps> = ({ category, onSelect
       traits = traitCatalog.hair;
       selectedId = config.selection.hair;
       break;
-    case 'outfit':
-      traits = traitCatalog.outfits;
-      selectedId = config.selection.outfit;
+    case 'top':
+      traits = traitCatalog.tops;
+      selectedId = config.selection.top;
+      break;
+    case 'bottom':
+      traits = traitCatalog.bottoms;
+      selectedId = config.selection.bottom;
+      break;
+    case 'shoes':
+      traits = traitCatalog.shoes;
+      selectedId = config.selection.shoes;
       break;
     case 'accessories':
       traits = traitCatalog.accessories;

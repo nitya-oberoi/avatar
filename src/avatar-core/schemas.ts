@@ -27,7 +27,9 @@ export const avatarSelectionSchema = z.object({
   body: z.string().min(1),
   head: z.string().min(1),
   hair: z.string().min(1),
-  outfit: z.string().min(1),
+  top: z.string().min(1),
+  bottom: z.string().min(1),
+  shoes: z.string().min(1),
   accessories: z.array(z.string()),
   expression: z.string().min(1),
 });
@@ -43,7 +45,7 @@ export const avatarConfigSchema = z.object({
 });
 
 export const raritySchema = z.enum(['common', 'rare', 'epic', 'legendary']);
-export const avatarSlotSchema = z.enum(['body', 'head', 'hair', 'outfit', 'expression', 'accessories']);
+export const avatarSlotSchema = z.enum(['body', 'head', 'hair', 'top', 'bottom', 'shoes', 'expression', 'accessories']);
 
 export const avatarItemSchema = z.object({
   id: z.string().min(1),

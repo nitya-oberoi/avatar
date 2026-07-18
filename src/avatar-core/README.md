@@ -33,7 +33,8 @@ An avatar is structured JSON (`AvatarConfig`), not an image:
 {
   "id": "avatar-...", "version": 1, "name": "Hero",
   "selection": { "gender": "female", "body": "body_standard", "head": "head_round",
-                 "hair": "hair_long", "outfit": "outfit_casual",
+                 "hair": "hair_long", "top": "top_tshirt",
+                 "bottom": "bottom_jeans", "shoes": "shoes_sneakers",
                  "accessories": ["acc_glasses"], "expression": "expr_neutral" },
   "colors": { "skinTone": "#E8B4A0", "hairColor": "#3D2817", "eyeColor": "#6B4423",
               "outfitPrimary": "#FF6B9D", "outfitSecondary": "#FFC857", "accentColor": "#1E88E5" },

@@ -25,7 +25,9 @@ export const CREATOR_CATEGORIES: CreatorCategory[] = [
   { id: 'hair', label: 'Hair', icon: '💇', slot: 'hair', colorKeys: ['hairColor'] },
   { id: 'face', label: 'Face', icon: '😀', slot: 'expression' },
   { id: 'eyes', label: 'Eyes', icon: '👁️', colorKeys: ['eyeColor'] },
-  { id: 'outfit', label: 'Outfit', icon: '👕', slot: 'outfit', colorKeys: ['outfitPrimary', 'outfitSecondary', 'accentColor'] },
+  { id: 'top', label: 'Top', icon: '👕', slot: 'top', colorKeys: ['outfitPrimary'] },
+  { id: 'bottom', label: 'Bottom', icon: '👖', slot: 'bottom', colorKeys: ['outfitSecondary'] },
+  { id: 'shoes', label: 'Shoes', icon: '👟', slot: 'shoes', colorKeys: ['accentColor'] },
   { id: 'accessories', label: 'Accessories', icon: '🧢', slot: 'accessories' },
 ];
 

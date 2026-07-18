@@ -23,10 +23,11 @@ import { AvatarColors } from '@apptypes/avatar';
 
 type Gender = 'male' | 'female';
 
-// Which character supplies the clothes (body + legs + feet) per outfit id.
+// Which character supplies the clothes (body + legs + feet) per top id.
+// The packs are whole themed characters, so the top choice picks the closest.
 const OUTFIT_CHAR: Record<Gender, Record<string, string>> = {
-  male: { casual: 'Casual_2', formal: 'Suit', sporty: 'Casual_Hoodie', magical: 'King', explorer: 'Adventurer', futuristic: 'Spacesuit', vintage: 'Farmer', boho: 'Worker' },
-  female: { casual: 'Casual', formal: 'Formal', sporty: 'Adventurer', magical: 'Medieval', explorer: 'Soldier', futuristic: 'SciFi', vintage: 'Punk', boho: 'Punk' },
+  male: { tshirt: 'Casual_2', longsleeve: 'Casual_Hoodie', hoodie: 'Casual_Hoodie', shirt: 'Suit', polo: 'Casual_2', jersey: 'Beach', tank: 'Beach', crop: 'Beach', blouse: 'Suit', star: 'King' },
+  female: { tshirt: 'Casual', longsleeve: 'Adventurer', hoodie: 'Adventurer', shirt: 'Formal', polo: 'Casual', jersey: 'Soldier', tank: 'Punk', crop: 'Punk', blouse: 'Formal', star: 'Medieval' },
 };
 // Which character supplies the head (baked hairstyle) per hair id.
 const HEAD_CHAR: Record<Gender, Record<string, string>> = {
@@ -127,7 +128,7 @@ const makeMixer = (root: THREE.Object3D, clips: THREE.AnimationClip[]) => {
 function Model() {
   const gender = useAvatarStore((s) => s.config.selection.gender) as Gender;
   const colors = useAvatarStore((s) => s.config.colors);
-  const outfit = useAvatarStore((s) => s.config.selection.outfit);
+  const outfit = useAvatarStore((s) => s.config.selection.top);
   const hair = useAvatarStore((s) => s.config.selection.hair);
   const body = useAvatarStore((s) => s.config.selection.body);
 

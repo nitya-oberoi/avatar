@@ -7,13 +7,15 @@ import {
   renderExpressionThumbnail,
   renderAccessoryThumbnail,
   renderBodyThumbnail,
-  renderOutfitThumbnail,
+  renderTopThumbnail,
+  renderBottomThumbnail,
+  renderShoesThumbnail,
 } from '@lib/avatarRenderer';
 import { isUnlocked, priceOf, type AvatarSlot } from '@/avatar-core';
 import { appCatalog } from '../application/avatarCatalog';
 import styles from './creator.module.css';
 
-type SingleSlot = 'body' | 'head' | 'hair' | 'outfit' | 'expression';
+type SingleSlot = 'body' | 'head' | 'hair' | 'top' | 'bottom' | 'shoes' | 'expression';
 
 interface Props {
   slot: AvatarSlot;
@@ -36,7 +38,9 @@ export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
       case 'hair': return renderHairThumbnail(id, colors.hairColor);
       case 'head': return renderHeadThumbnail(id, colors.skinTone);
       case 'body': return renderBodyThumbnail(id, colors);
-      case 'outfit': return renderOutfitThumbnail(id, colors);
+      case 'top': return renderTopThumbnail(id, colors);
+      case 'bottom': return renderBottomThumbnail(id, colors);
+      case 'shoes': return renderShoesThumbnail(id, colors);
       case 'expression': return renderExpressionThumbnail(id, colors);
       case 'accessories': return renderAccessoryThumbnail(id, colors);
       default: return '';

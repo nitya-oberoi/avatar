@@ -19,10 +19,10 @@ import styles from './creator.module.css';
 const COINS = 12450;
 const UNLOCKED_IDS: string[] = [];
 
-// Sensible hair/outfit applied when the user switches gender.
-const GENDER_DEFAULTS: Record<'male' | 'female', { hair: string; outfit: string }> = {
-  male: { hair: 'hair_short', outfit: 'outfit_sporty' },
-  female: { hair: 'hair_long', outfit: 'outfit_casual' },
+// Sensible wardrobe applied when the user switches gender.
+const GENDER_DEFAULTS: Record<'male' | 'female', { hair: string; top: string; bottom: string; shoes: string }> = {
+  male: { hair: 'hair_crew', top: 'top_tshirt', bottom: 'bottom_jeans', shoes: 'shoes_sneakers' },
+  female: { hair: 'hair_long', top: 'top_blouse', bottom: 'bottom_skirt', shoes: 'shoes_sneakers' },
 };
 
 export const CreatorScreen: React.FC = () => {
@@ -86,7 +86,9 @@ export const CreatorScreen: React.FC = () => {
     selectTrait('gender', g);
     const d = GENDER_DEFAULTS[g];
     selectTrait('hair', d.hair);
-    selectTrait('outfit', d.outfit);
+    selectTrait('top', d.top);
+    selectTrait('bottom', d.bottom);
+    selectTrait('shoes', d.shoes);
   };
 
   return (
