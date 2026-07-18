@@ -53,6 +53,8 @@
 .card:hover { transform: translateY(-2px); border-color: #3d517d; }
 .cardSelected { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold) inset; }
 .cardName { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--muted); }
+.thumb { width: 100%; height: 100%; display: grid; place-items: center; }
+.thumb svg { width: 94%; height: 94%; }
 .check { position: absolute; bottom: 4px; right: 6px; color: #4ade80; font-weight: 900; font-size: 14px; }
 .locked { position: absolute; inset: 0; background: #0e152699; border-radius: 12px; display: grid; place-items: center; font-size: 22px; }
 .gem { position: absolute; top: 5px; right: 6px; font-size: 13px; }
