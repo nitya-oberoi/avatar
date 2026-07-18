@@ -78,6 +78,13 @@
 .stageInner { position: absolute; inset: 0; display: grid; place-items: center; }
 .avatarWrap { position: relative; bottom: -6%; filter: drop-shadow(0 12px 10px rgba(0,0,0,0.35)); transform-origin: 50% 100%; }
 .animRail { position: absolute; top: 14px; right: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* background scene picker (top-left of the stage) */
+.sceneRail { position: absolute; top: 14px; left: 14px; display: flex; gap: 8px; background: #0e1526aa; border: 1px solid var(--border); border-radius: 999px; padding: 6px 8px; backdrop-filter: blur(4px); }
+.sceneChip { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ffffff44; cursor: pointer; padding: 0; }
+.sceneChip:hover { transform: scale(1.12); }
+.sceneChipActive { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.sceneChip:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
 .railBtn { width: 52px; height: 52px; border-radius: 14px; border: 1px solid var(--border); background: #0e1526cc; color: var(--text); font-size: 22px; cursor: pointer; display: grid; place-items: center; }
 .railBtnActive { background: linear-gradient(180deg, var(--accent2), var(--accent)); border-color: var(--accent2); }
 
