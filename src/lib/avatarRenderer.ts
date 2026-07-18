@@ -9,7 +9,7 @@
  * face, front-hair, accessories.
  */
 
-import { AvatarConfig } from '@apptypes/avatar';
+import { AvatarConfig, AvatarColors, AvatarSelection } from '@apptypes/avatar';
 
 const CX = 150;
 const OL = '#33251f';
@@ -614,6 +614,57 @@ export const renderHeadThumbnail = (headId: string, skinTone = '#EFCBB4', size =
   };
   return `<svg width="${size}" height="${size}" viewBox="60 22 180 164" xmlns="http://www.w3.org/2000/svg">
     ${renderEars(c)}${renderHead(c)}${renderFace(c)}
+  </svg>`;
+};
+
+// Neutral config for the remaining thumbnails, with per-item overrides applied
+// over the caller's live colours (so previews reflect the current palette).
+const thumbBase = (sel: Partial<AvatarSelection>, colors: AvatarColors): AvatarConfig => ({
+  id: 'thumb',
+  version: 1,
+  selection: {
+    gender: 'female',
+    body: 'body_standard',
+    head: 'head_round',
+    hair: 'hair_short',
+    outfit: 'outfit_casual',
+    accessories: [],
+    expression: 'expr_happy',
+    ...sel,
+  },
+  colors,
+  createdAt: 0,
+  updatedAt: 0,
+});
+
+const facePreview = (c: AvatarConfig, gid: string, viewBox: string, extra = ''): string => {
+  const hair = renderHair(c, gid);
+  return `<svg width="88" height="88" viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg">
+    <defs>${hairGradient(gid, c.colors.hairColor)}</defs>
+    ${hair.back}${renderEars(c)}${renderHead(c)}${renderFace(c)}${hair.front}${extra}
+  </svg>`;
+};
+
+// Expression preview: a face wearing the given expression.
+export const renderExpressionThumbnail = (exprId: string, colors: AvatarColors): string =>
+  facePreview(thumbBase({ expression: exprId }, colors), `hg-exp-${exprId}`, '54 8 192 192');
+
+// Accessory preview: a head wearing the given accessory (hats/glasses/etc.).
+export const renderAccessoryThumbnail = (accId: string, colors: AvatarColors): string => {
+  const c = thumbBase({ accessories: [accId] }, colors);
+  return facePreview(c, `hg-acc-${accId}`, '48 0 204 204', renderAccessories(c));
+};
+
+// Body preview: the whole avatar, showing the body proportions.
+export const renderBodyThumbnail = (bodyId: string, colors: AvatarColors): string =>
+  renderAvatarSVG(thumbBase({ body: bodyId }, colors), 96);
+
+// Outfit preview: the torso wearing the outfit (its neckline/motif).
+export const renderOutfitThumbnail = (outfitId: string, colors: AvatarColors): string => {
+  const c = thumbBase({ outfit: outfitId }, colors);
+  const t = renderTorso(c, `ot-${outfitId}`);
+  return `<svg width="88" height="88" viewBox="74 170 152 114" xmlns="http://www.w3.org/2000/svg">
+    ${t.armL}${t.armR}${t.body}
   </svg>`;
 };
 
