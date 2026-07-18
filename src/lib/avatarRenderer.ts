@@ -20,13 +20,16 @@ const EYE_DX = 26;
 const stroke = `stroke="${OL}" stroke-width="${OLW}" stroke-linejoin="round" stroke-linecap="round"`;
 
 export const renderAvatarSVG = (config: AvatarConfig, size = 300): string => {
-  const hair = renderHair(config);
   const w = Math.round(size * (300 / 380));
   const uid = hashId(config.id + config.selection.head);
+  const hair = renderHair(config, `hg-${uid}`);
   const hg = headGeom(config.selection.head, config.selection.gender);
   return `
     <svg width="${w}" height="${size}" viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg">
-      <defs><clipPath id="head-${uid}">${hg.path} ${headScale(hg.f)} /></clipPath></defs>
+      <defs>
+        <clipPath id="head-${uid}">${hg.path} ${headScale(hg.f)} /></clipPath>
+        ${hairGradient(`hg-${uid}`, config.colors.hairColor)}
+      </defs>
       <ellipse cx="${CX}" cy="366" rx="72" ry="12" fill="#000" opacity="0.10"/>
       ${rig(config, uid, hair)}
     </svg>
@@ -333,8 +336,17 @@ const renderBlush = (c: AvatarConfig): string => {
 
 interface HairLayers { back: string; front: string; }
 
-const renderHair = (c: AvatarConfig): HairLayers => {
+// Vertical hair gradient: lit crown → base → shadowed underside. Applied to
+// every hair shape (objectBoundingBox), giving flat styles real depth.
+const hairGradient = (id: string, hex: string): string =>
+  `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0" stop-color="${lighten(hex, 20)}"/>` +
+  `<stop offset="0.42" stop-color="${hex}"/>` +
+  `<stop offset="1" stop-color="${darken(hex, 22)}"/></linearGradient>`;
+
+const renderHair = (c: AvatarConfig, gradId: string): HairLayers => {
   const col = c.colors.hairColor;
+  const fillRef = `url(#${gradId})`;
   const hi = lighten(col, 20);
   const { sideX, topY, browW } = headGeom(c.selection.head, c.selection.gender);
   // Front cap fitted to the head: peaks above the skull, hugs the temples,
@@ -348,10 +360,10 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       Q${CX + w * 0.62} ${fr - 3} ${CX + w * 0.34} ${fr - 10}
       Q${CX + w * 0.13} ${fr} ${CX} ${fr - 9}
       Q${CX - w * 0.13} ${fr} ${CX - w * 0.34} ${fr - 10}
-      Q${CX - w * 0.62} ${fr - 3} ${CX - w} ${fr - 6} Z" fill="${col}" ${stroke}/>`
+      Q${CX - w * 0.62} ${fr - 3} ${CX - w} ${fr - 6} Z" fill="${fillRef}" ${stroke}/>`
     + `<path d="M${CX - w * 0.5} ${topY + 10} Q${CX - w * 0.1} ${peak + 8} ${CX + w * 0.25} ${peak + 12}" fill="none" stroke="${hi}" stroke-width="5" stroke-linecap="round" opacity="0.5"/>`;
   const back = (ry: number, cy: number) =>
-    `<ellipse cx="${CX}" cy="${cy}" rx="${sideX + 16}" ry="${ry}" fill="${col}" ${stroke}/>`;
+    `<ellipse cx="${CX}" cy="${cy}" rx="${sideX + 16}" ry="${ry}" fill="${fillRef}" ${stroke}/>`;
 
   switch (c.selection.hair) {
     case 'hair_short': return { back: '', front: cap };
@@ -359,133 +371,133 @@ const renderHair = (c: AvatarConfig): HairLayers => {
     case 'hair_bob': return { back: back(72, 108), front: cap };
     case 'hair_wavy':
       return {
-        back: `${back(104, 124)}${[86, 118, 182, 214].map((x) => `<circle cx="${x}" cy="222" r="16" fill="${col}" ${stroke}/>`).join('')}`,
+        back: `${back(104, 124)}${[86, 118, 182, 214].map((x) => `<circle cx="${x}" cy="222" r="16" fill="${fillRef}" ${stroke}/>`).join('')}`,
         front: cap,
       };
     case 'hair_bun':
-      return { back: `<circle cx="${CX}" cy="26" r="21" fill="${col}" ${stroke}/>`, front: cap };
+      return { back: `<circle cx="${CX}" cy="26" r="21" fill="${fillRef}" ${stroke}/>`, front: cap };
     case 'hair_spiky': {
       // One jagged silhouette: swept sides, tall fanned spikes, spiky fringe.
-      const spikes = `<path d="M86 98 L80 58 L96 66 L90 30 L106 40 L104 12 L122 34 L128 8 L146 32 L150 2 L154 32 L172 8 L178 34 L196 12 L194 40 L210 30 L204 66 L220 58 L214 98 L200 84 L190 96 L176 82 L164 94 L150 82 L136 94 L124 82 L110 96 L100 84 Z" fill="${col}" ${stroke}/>`;
+      const spikes = `<path d="M86 98 L80 58 L96 66 L90 30 L106 40 L104 12 L122 34 L128 8 L146 32 L150 2 L154 32 L172 8 L178 34 L196 12 L194 40 L210 30 L204 66 L220 58 L214 98 L200 84 L190 96 L176 82 L164 94 L150 82 L136 94 L124 82 L110 96 L100 84 Z" fill="${fillRef}" ${stroke}/>`;
       const sheen = `<path d="M118 34 L128 14 L136 34 M168 34 L176 16 L182 34" fill="none" stroke="${lighten(col, 20)}" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>`;
       return { back: '', front: `${spikes}${sheen}` };
     }
     case 'hair_braids':
       // back hair mass; braids hang beside the face over the shoulders (front)
-      return { back: back(58, 96), front: `${cap}${braid(84, col)}${braid(216, col)}` };
+      return { back: back(58, 96), front: `${cap}${braid(84, col, fillRef)}${braid(216, col, fillRef)}` };
     case 'hair_curly': {
       // one cohesive scalloped afro (no messy internal outlines) + fringe + sheen
-      const mass = `<path d="${scallop(CX, 84, 82, 84, 12)}" fill="${col}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${col}"/>`;
+      const mass = `<path d="${scallop(CX, 84, 82, 84, 12)}" fill="${fillRef}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${fillRef}"/>`;
       const sheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 18)}" opacity="0.5"/>`;
       return { back: mass, front: `${fringe}${sheen}` };
     }
     case 'hair_pixie':
       return { back: '', front: `${cap}<path d="M104 66 Q140 50 178 70" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"/>` };
     case 'hair_afro': {
-      const mass = `<path d="${scallop(CX, 74, 95, 92, 14)}" fill="${col}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 54, 70, 30, 10)}" fill="${col}"/>`;
+      const mass = `<path d="${scallop(CX, 74, 95, 92, 14)}" fill="${fillRef}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 54, 70, 30, 10)}" fill="${fillRef}"/>`;
       const sheen = `<path d="${scallop(CX - 28, 50, 36, 26, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: mass, front: `${fringe}${sheen}` };
     }
     case 'hair_mohawk':
-      return { back: '', front: `<path d="M128 66 L134 8 L143 44 L150 4 L157 44 L166 8 L172 66 Q150 56 128 66 Z" fill="${col}" ${stroke}/><path d="M143 50 Q150 58 157 50" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>` };
+      return { back: '', front: `<path d="M128 66 L134 8 L143 44 L150 4 L157 44 L166 8 L172 66 Q150 56 128 66 Z" fill="${fillRef}" ${stroke}/><path d="M143 50 Q150 58 157 50" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>` };
     case 'hair_ponytail':
       return {
-        back: `<path d="M184 64 Q232 100 224 168 Q216 208 194 216 Q214 188 207 154 Q202 118 174 92 Z" fill="${col}" ${stroke}/><rect x="178" y="58" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`,
+        back: `<path d="M184 64 Q232 100 224 168 Q216 208 194 216 Q214 188 207 154 Q202 118 174 92 Z" fill="${fillRef}" ${stroke}/><rect x="178" y="58" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`,
         front: cap,
       };
     case 'hair_pigtails': {
-      const puff = (x: number) => `<ellipse cx="${x}" cy="100" rx="20" ry="31" fill="${col}" ${stroke}/><rect x="${x - 7}" y="72" width="14" height="8" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
+      const puff = (x: number) => `<ellipse cx="${x}" cy="100" rx="20" ry="31" fill="${fillRef}" ${stroke}/><rect x="${x - 7}" y="72" width="14" height="8" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
       return { back: `${puff(84)}${puff(216)}`, front: cap };
     }
     case 'hair_topknot':
-      return { back: `<circle cx="${CX}" cy="20" r="17" fill="${col}" ${stroke}/><rect x="${CX - 9}" y="30" width="18" height="8" rx="4" fill="${darken(col, 20)}"/>`, front: cap };
+      return { back: `<circle cx="${CX}" cy="20" r="17" fill="${fillRef}" ${stroke}/><rect x="${CX - 9}" y="30" width="18" height="8" rx="4" fill="${darken(col, 20)}"/>`, front: cap };
     case 'hair_curly_long': {
       // long, soft curls framing the face and hanging past the shoulders:
       // one bumpy silhouette (curls) + a curly fringe.
-      const mass = `<path d="M78 96 Q62 120 74 142 Q58 164 72 186 Q56 210 74 230 Q66 252 94 252 Q120 260 150 256 Q180 260 206 252 Q234 252 226 230 Q244 210 228 186 Q242 164 226 142 Q238 120 222 96 Q224 40 150 32 Q76 40 78 96 Z" fill="${col}" ${stroke}/>`;
+      const mass = `<path d="M78 96 Q62 120 74 142 Q58 164 72 186 Q56 210 74 230 Q66 252 94 252 Q120 260 150 256 Q180 260 206 252 Q234 252 226 230 Q244 210 228 186 Q242 164 226 142 Q238 120 222 96 Q224 40 150 32 Q76 40 78 96 Z" fill="${fillRef}" ${stroke}/>`;
       const sheen = `<path d="M84 130 Q78 160 88 196" fill="none" stroke="${lighten(col, 14)}" stroke-width="5" stroke-linecap="round" opacity="0.4"/>`;
-      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${col}"/>`;
+      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${fillRef}"/>`;
       const fsheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: `${mass}${sheen}`, front: `${fringe}${fsheen}` };
     }
     case 'hair_ringlets': {
       // very long with tighter ringlet bumps down each side.
-      const mass = `<path d="M80 96 Q64 112 78 128 Q62 146 78 162 Q62 182 78 198 Q62 220 78 238 Q68 262 96 264 Q123 270 150 266 Q177 270 204 264 Q232 262 222 238 Q238 220 222 198 Q238 182 222 162 Q238 146 222 128 Q236 112 220 96 Q224 40 150 32 Q76 40 80 96 Z" fill="${col}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 64, 60, 28, 10)}" fill="${col}"/>`;
+      const mass = `<path d="M80 96 Q64 112 78 128 Q62 146 78 162 Q62 182 78 198 Q62 220 78 238 Q68 262 96 264 Q123 270 150 266 Q177 270 204 264 Q232 262 222 238 Q238 220 222 198 Q238 182 222 162 Q238 146 222 128 Q236 112 220 96 Q224 40 150 32 Q76 40 80 96 Z" fill="${fillRef}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 64, 60, 28, 10)}" fill="${fillRef}"/>`;
       const fsheen = `<path d="${scallop(CX - 20, 58, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: mass, front: `${fringe}${fsheen}` };
     }
     case 'hair_bangs': {
       // straight blunt fringe (flat bottom) + medium length behind.
       const w = browW + 3;
-      const bangs = `<path d="M${CX - w} 90 C${CX - w - 2} ${topY + 2} ${CX - w * 0.5} ${topY - 14} ${CX} ${topY - 14} C${CX + w * 0.5} ${topY - 14} ${CX + w + 2} ${topY + 2} ${CX + w} 90 Z" fill="${col}" ${stroke}/>`;
+      const bangs = `<path d="M${CX - w} 90 C${CX - w - 2} ${topY + 2} ${CX - w * 0.5} ${topY - 14} ${CX} ${topY - 14} C${CX + w * 0.5} ${topY - 14} ${CX + w + 2} ${topY + 2} ${CX + w} 90 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M${CX - w * 0.5} ${topY - 2} Q${CX - w * 0.1} ${topY - 10} ${CX + w * 0.2} ${topY - 8}" fill="none" stroke="${lighten(col, 20)}" stroke-width="5" stroke-linecap="round" opacity="0.5"/>`;
       return { back: back(90, 116), front: `${bangs}${hi}` };
     }
     case 'hair_sidepart': {
       // full swept-over top; fringe sweeps low on the right, part on the left.
-      const shape = `<path d="M76 102 C68 50 96 34 150 32 C204 34 226 54 222 104 C216 80 192 72 168 84 Q150 60 118 88 C102 76 84 82 76 102 Z" fill="${col}" ${stroke}/>`;
+      const shape = `<path d="M76 102 C68 50 96 34 150 32 C204 34 226 54 222 104 C216 80 192 72 168 84 Q150 60 118 88 C102 76 84 82 76 102 Z" fill="${fillRef}" ${stroke}/>`;
       const part = `<path d="M122 42 Q114 66 110 90" fill="none" stroke="${darken(col, 18)}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`;
       const hi = `<path d="M138 50 Q170 44 198 62" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
       return { back: '', front: `${shape}${part}${hi}` };
     }
     case 'hair_undercut': {
       // shaved sides, tall swept quiff on the crown.
-      const top = `<path d="M92 70 C82 26 124 20 152 20 C186 20 220 34 208 72 C200 50 178 46 158 56 Q150 40 122 52 Q108 44 100 62 C97 56 94 64 92 70 Z" fill="${col}" ${stroke}/>`;
+      const top = `<path d="M92 70 C82 26 124 20 152 20 C186 20 220 34 208 72 C200 50 178 46 158 56 Q150 40 122 52 Q108 44 100 62 C97 56 94 64 92 70 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M120 42 Q152 30 186 48" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
       return { back: '', front: `${top}${hi}` };
     }
     case 'hair_curly_bob': {
       // chin-length curly bob with bumpy edges + curly fringe.
-      const mass = `<path d="M76 96 Q62 116 74 138 Q66 156 90 162 Q120 170 150 166 Q180 170 210 162 Q234 156 226 138 Q238 116 224 96 Q224 40 150 32 Q76 40 76 96 Z" fill="${col}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${col}"/>`;
+      const mass = `<path d="M76 96 Q62 116 74 138 Q66 156 90 162 Q120 170 150 166 Q180 170 210 162 Q234 156 226 138 Q238 116 224 96 Q224 40 150 32 Q76 40 76 96 Z" fill="${fillRef}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${fillRef}"/>`;
       const fsheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: mass, front: `${fringe}${fsheen}` };
     }
     case 'hair_curly_pony': {
       // curly fringe + a bumpy (curly) ponytail hanging to the side.
-      const tail = `<path d="M182 62 Q236 92 230 138 Q246 168 224 190 Q238 210 214 224 Q228 202 214 184 Q226 160 206 144 Q216 118 190 106 Z" fill="${col}" ${stroke}/><rect x="176" y="56" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 66, 60, 28, 9)}" fill="${col}"/>`;
+      const tail = `<path d="M182 62 Q236 92 230 138 Q246 168 224 190 Q238 210 214 224 Q228 202 214 184 Q226 160 206 144 Q216 118 190 106 Z" fill="${fillRef}" ${stroke}/><rect x="176" y="56" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 66, 60, 28, 9)}" fill="${fillRef}"/>`;
       const fsheen = `<path d="${scallop(CX - 20, 60, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: tail, front: `${fringe}${fsheen}` };
     }
     case 'hair_crew': {
       // neat short rounded crew cut.
-      const s = `<path d="M84 98 C80 56 106 44 150 44 C194 44 220 56 216 98 C208 78 186 72 150 76 C114 72 92 78 84 98 Z" fill="${col}" ${stroke}/>`;
+      const s = `<path d="M84 98 C80 56 106 44 150 44 C194 44 220 56 216 98 C208 78 186 72 150 76 C114 72 92 78 84 98 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M108 60 Q150 50 192 62" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
       return { back: '', front: `${s}${hi}` };
     }
     case 'hair_quiff': {
       // short sides + a swept tuft lifted at the front-centre.
-      const base = `<path d="M84 100 C80 58 106 46 150 46 C194 46 220 58 216 100 C210 80 188 74 150 78 C112 74 90 80 84 100 Z" fill="${col}" ${stroke}/>`;
-      const tuft = `<path d="M114 60 Q122 20 152 28 Q186 22 178 58 Q150 46 114 60 Z" fill="${col}" ${stroke}/>`;
+      const base = `<path d="M84 100 C80 58 106 46 150 46 C194 46 220 58 216 100 C210 80 188 74 150 78 C112 74 90 80 84 100 Z" fill="${fillRef}" ${stroke}/>`;
+      const tuft = `<path d="M114 60 Q122 20 152 28 Q186 22 178 58 Q150 46 114 60 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M128 46 Q152 36 172 48" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
       return { back: '', front: `${base}${tuft}${hi}` };
     }
     case 'hair_fauxhawk': {
       // short sides + a raised spiky ridge down the centre.
-      const base = `<path d="M86 100 C82 60 108 48 150 48 C192 48 218 60 214 100 C208 80 186 74 150 78 C114 74 92 80 86 100 Z" fill="${col}" ${stroke}/>`;
-      const ridge = `<path d="M130 60 L136 16 L145 46 L152 12 L159 46 L168 16 L174 60 Q150 52 130 60 Z" fill="${col}" ${stroke}/>`;
+      const base = `<path d="M86 100 C82 60 108 48 150 48 C192 48 218 60 214 100 C208 80 186 74 150 78 C114 74 92 80 86 100 Z" fill="${fillRef}" ${stroke}/>`;
+      const ridge = `<path d="M130 60 L136 16 L145 46 L152 12 L159 46 L168 16 L174 60 Q150 52 130 60 Z" fill="${fillRef}" ${stroke}/>`;
       return { back: '', front: `${base}${ridge}` };
     }
     case 'hair_tousled': {
       // messy, tufted, slightly swept short hair.
-      const s = `<path d="M78 104 Q72 56 98 44 Q96 32 116 42 Q120 28 140 42 Q150 30 168 44 Q182 34 196 50 Q214 48 222 74 Q228 92 224 104 Q214 80 192 82 Q204 64 182 66 Q192 52 166 62 Q176 48 150 58 Q118 48 98 70 Q86 64 78 104 Z" fill="${col}" ${stroke}/>`;
+      const s = `<path d="M78 104 Q72 56 98 44 Q96 32 116 42 Q120 28 140 42 Q150 30 168 44 Q182 34 196 50 Q214 48 222 74 Q228 92 224 104 Q214 80 192 82 Q204 64 182 66 Q192 52 166 62 Q176 48 150 58 Q118 48 98 70 Q86 64 78 104 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M108 58 Q136 44 166 56" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
       return { back: '', front: `${s}${hi}` };
     }
     case 'hair_swoop': {
       // big side-swept fringe sweeping across the forehead.
-      const base = `<path d="M76 102 C66 50 96 34 150 34 C206 36 228 56 222 104 C214 80 190 72 154 82 C120 92 94 92 76 102 Z" fill="${col}" ${stroke}/>`;
-      const swoop = `<path d="M104 46 Q168 40 216 92 Q198 70 166 70 Q136 66 114 84 Q100 66 104 46 Z" fill="${col}" ${stroke}/>`;
+      const base = `<path d="M76 102 C66 50 96 34 150 34 C206 36 228 56 222 104 C214 80 190 72 154 82 C120 92 94 92 76 102 Z" fill="${fillRef}" ${stroke}/>`;
+      const swoop = `<path d="M104 46 Q168 40 216 92 Q198 70 166 70 Q136 66 114 84 Q100 66 104 46 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M120 52 Q160 50 196 78" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
       return { back: '', front: `${base}${swoop}${hi}` };
     }
     case 'hair_shaggy': {
       // longer messy shag with pointy fringe ends, covering the ears.
-      const s = `<path d="M72 110 Q66 60 78 44 Q92 30 116 40 Q130 26 150 38 Q170 26 186 42 Q208 34 220 56 Q232 74 228 110 Q222 90 210 92 L204 108 Q192 90 184 104 L178 88 Q166 96 158 108 L152 90 Q140 98 132 108 L126 90 Q112 96 106 108 L100 90 Q86 92 82 106 Q76 92 72 110 Z" fill="${col}" ${stroke}/>`;
+      const s = `<path d="M72 110 Q66 60 78 44 Q92 30 116 40 Q130 26 150 38 Q170 26 186 42 Q208 34 220 56 Q232 74 228 110 Q222 90 210 92 L204 108 Q192 90 184 104 L178 88 Q166 96 158 108 L152 90 Q140 98 132 108 L126 90 Q112 96 106 108 L100 90 Q86 92 82 106 Q76 92 72 110 Z" fill="${fillRef}" ${stroke}/>`;
       const hi = `<path d="M96 56 Q140 42 190 58" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
       return { back: '', front: `${s}${hi}` };
     }
@@ -513,7 +525,7 @@ const scallop = (cx: number, cy: number, rx: number, ry: number, bumps: number):
 
 // A twisted-rope plait: overlapping oval knots tilted in alternating directions
 // so it unmistakably reads as braided, tapering to a tie + tassel.
-const braid = (bx: number, col: string): string => {
+const braid = (bx: number, col: string, fillRef: string): string => {
   const hi = lighten(col, 16);
   const knots = [
     { y: 122, rx: 15, ry: 12 },
@@ -528,7 +540,7 @@ const braid = (bx: number, col: string): string => {
     .map((k, i) => {
       const rot = i % 2 === 0 ? 20 : -20; // alternate tilt = the weave
       return `<g transform="rotate(${rot} ${bx} ${k.y})">`
-        + `<ellipse cx="${bx}" cy="${k.y}" rx="${k.rx}" ry="${k.ry}" fill="${col}" ${stroke}/>`
+        + `<ellipse cx="${bx}" cy="${k.y}" rx="${k.rx}" ry="${k.ry}" fill="${fillRef}" ${stroke}/>`
         + `<ellipse cx="${bx - k.rx * 0.3}" cy="${k.y - k.ry * 0.3}" rx="${k.rx * 0.4}" ry="${k.ry * 0.4}" fill="${hi}" opacity="0.45"/>`
         + `</g>`;
     })
@@ -566,8 +578,10 @@ export const renderHairThumbnail = (hairId: string, hairColor = '#3D2817', size 
     createdAt: 0,
     updatedAt: 0,
   };
-  const hair = renderHair(c);
+  const gid = `hg-thumb-${hairId}`;
+  const hair = renderHair(c, gid);
   return `<svg width="${size}" height="${size}" viewBox="54 8 192 192" xmlns="http://www.w3.org/2000/svg">
+    <defs>${hairGradient(gid, hairColor)}</defs>
     ${hair.back}${renderEars(c)}${renderHead(c)}${hair.front}
   </svg>`;
 };
