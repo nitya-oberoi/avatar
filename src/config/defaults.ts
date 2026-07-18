@@ -54,6 +54,8 @@ export const traitCatalog = {
     { id: 'hair_ponytail', name: 'Ponytail', icon: '🎏' },
     { id: 'hair_pigtails', name: 'Pigtails', icon: '👧' },
     { id: 'hair_topknot', name: 'Top Knot', icon: '🌰' },
+    { id: 'hair_curly_long', name: 'Long Curls', icon: '🌀' },
+    { id: 'hair_ringlets', name: 'Ringlets', icon: '💫' },
   ],
 
   // Outfit options - complete looks

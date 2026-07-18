@@ -364,8 +364,12 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       };
     case 'hair_bun':
       return { back: `<circle cx="${CX}" cy="26" r="21" fill="${col}" ${stroke}/>`, front: cap };
-    case 'hair_spiky':
-      return { back: '', front: `${cap}<path d="M96 52 L110 14 L126 48 L142 12 L158 48 L174 14 L188 52 L200 26 L208 60 Z" fill="${col}" ${stroke}/>` };
+    case 'hair_spiky': {
+      // One jagged silhouette: swept sides, tall fanned spikes, spiky fringe.
+      const spikes = `<path d="M86 98 L80 58 L96 66 L90 30 L106 40 L104 12 L122 34 L128 8 L146 32 L150 2 L154 32 L172 8 L178 34 L196 12 L194 40 L210 30 L204 66 L220 58 L214 98 L200 84 L190 96 L176 82 L164 94 L150 82 L136 94 L124 82 L110 96 L100 84 Z" fill="${col}" ${stroke}/>`;
+      const sheen = `<path d="M118 34 L128 14 L136 34 M168 34 L176 16 L182 34" fill="none" stroke="${lighten(col, 20)}" stroke-width="3.5" stroke-linecap="round" opacity="0.5"/>`;
+      return { back: '', front: `${spikes}${sheen}` };
+    }
     case 'hair_braids':
       // back hair mass; braids hang beside the face over the shoulders (front)
       return { back: back(58, 96), front: `${cap}${braid(84, col)}${braid(216, col)}` };
@@ -380,12 +384,12 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       return { back: '', front: `${cap}<path d="M104 66 Q140 50 178 70" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"/>` };
     case 'hair_afro': {
       const mass = `<path d="${scallop(CX, 74, 95, 92, 14)}" fill="${col}" ${stroke}/>`;
-      const fringe = `<path d="${scallop(CX, 60, 72, 36, 10)}" fill="${col}"/>`;
-      const sheen = `<path d="${scallop(CX - 28, 54, 36, 28, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      const fringe = `<path d="${scallop(CX, 54, 70, 30, 10)}" fill="${col}"/>`;
+      const sheen = `<path d="${scallop(CX - 28, 50, 36, 26, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: mass, front: `${fringe}${sheen}` };
     }
     case 'hair_mohawk':
-      return { back: '', front: `<path d="M134 62 L140 12 L148 46 L154 8 L160 46 L168 12 L174 62 Q150 54 134 62 Z" fill="${col}" ${stroke}/>` };
+      return { back: '', front: `<path d="M128 66 L134 8 L143 44 L150 4 L157 44 L166 8 L172 66 Q150 56 128 66 Z" fill="${col}" ${stroke}/><path d="M143 50 Q150 58 157 50" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>` };
     case 'hair_ponytail':
       return {
         back: `<path d="M184 64 Q232 100 224 168 Q216 208 194 216 Q214 188 207 154 Q202 118 174 92 Z" fill="${col}" ${stroke}/><rect x="178" y="58" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`,
@@ -397,6 +401,22 @@ const renderHair = (c: AvatarConfig): HairLayers => {
     }
     case 'hair_topknot':
       return { back: `<circle cx="${CX}" cy="20" r="17" fill="${col}" ${stroke}/><rect x="${CX - 9}" y="30" width="18" height="8" rx="4" fill="${darken(col, 20)}"/>`, front: cap };
+    case 'hair_curly_long': {
+      // long, soft curls framing the face and hanging past the shoulders:
+      // one bumpy silhouette (curls) + a curly fringe.
+      const mass = `<path d="M78 96 Q62 120 74 142 Q58 164 72 186 Q56 210 74 230 Q66 252 94 252 Q120 260 150 256 Q180 260 206 252 Q234 252 226 230 Q244 210 228 186 Q242 164 226 142 Q238 120 222 96 Q224 40 150 32 Q76 40 78 96 Z" fill="${col}" ${stroke}/>`;
+      const sheen = `<path d="M84 130 Q78 160 88 196" fill="none" stroke="${lighten(col, 14)}" stroke-width="5" stroke-linecap="round" opacity="0.4"/>`;
+      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${col}"/>`;
+      const fsheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      return { back: `${mass}${sheen}`, front: `${fringe}${fsheen}` };
+    }
+    case 'hair_ringlets': {
+      // very long with tighter ringlet bumps down each side.
+      const mass = `<path d="M80 96 Q64 112 78 128 Q62 146 78 162 Q62 182 78 198 Q62 220 78 238 Q68 262 96 264 Q123 270 150 266 Q177 270 204 264 Q232 262 222 238 Q238 220 222 198 Q238 182 222 162 Q238 146 222 128 Q236 112 220 96 Q224 40 150 32 Q76 40 80 96 Z" fill="${col}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 64, 60, 28, 10)}" fill="${col}"/>`;
+      const fsheen = `<path d="${scallop(CX - 20, 58, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      return { back: mass, front: `${fringe}${fsheen}` };
+    }
     default: return { back: back(112, 128), front: cap };
   }
 };
