@@ -71,45 +71,60 @@ const renderFaceShadow = (c: AvatarConfig, uid: string): string => {
 /* ------------------------------- body ---------------------------- */
 
 // Gender + body-trait silhouette. Male = broad shoulders / narrow hips (V);
-// female = narrower shoulders / wider hips (hourglass, with the waist pinch in
-// the torso path).
+// female = narrower shoulders / wider hips (hourglass). `weight` scales limb
+// thickness, leg width, and stance so the range runs petite → plus-size.
 const bodyGeom = (c: AvatarConfig) => {
   const female = c.selection.gender === 'female';
   let shoulder = female ? 36 : 49; // half-width at shoulders
   let hip = female ? 46 : 37; // half-width at hips
+  let weight = 1; // overall build (0.8 petite → 1.4 round)
   switch (c.selection.body) {
-    case 'body_slim': shoulder -= 6; hip -= 5; break;
-    case 'body_athletic': shoulder += 7; break;
-    case 'body_curvy': hip += 8; break;
+    case 'body_petite': shoulder -= 9; hip -= 7; weight = 0.8; break;
+    case 'body_slim': shoulder -= 6; hip -= 6; weight = 0.84; break;
+    case 'body_athletic': shoulder += 9; hip -= 1; weight = 1.06; break;
+    case 'body_curvy': shoulder -= 1; hip += 10; weight = 1.08; break;
+    case 'body_broad': shoulder += 13; hip += 6; weight = 1.22; break;
+    case 'body_plus': shoulder += 5; hip += 12; weight = 1.28; break;
+    case 'body_round': shoulder += 8; hip += 16; weight = 1.4; break;
+    // body_standard: defaults
   }
-  return { shoulder, hip, female };
+  return { shoulder, hip, female, weight };
 };
 
 const renderLegs = (c: AvatarConfig, uid: string): { left: string; right: string } => {
   const pants = c.colors.outfitSecondary;
   const shade = darken(pants, 13);
   const shoes = c.colors.accentColor;
+  const { hip, weight } = bodyGeom(c);
+  // legs thicken with build and spread with the hips
+  const legW = Math.round(Math.max(17, Math.min(42, 24 + (weight - 1) * 32)));
+  const spread = Math.round(Math.max(hip * 0.3, legW * 0.6));
+  const cxL = CX - spread, cxR = CX + spread;
   // each leg: base fill + inner-edge shadow + outer highlight (clipped to leg)
-  const leg = (x: number, i: number) => `
-    <rect x="${x}" y="258" width="27" height="90" rx="12" fill="${pants}" ${stroke}/>
-    <clipPath id="leg-${uid}-${i}"><rect x="${x}" y="258" width="27" height="90" rx="12"/></clipPath>
+  const leg = (cx: number, i: number) => {
+    const x = Math.round(cx - legW / 2);
+    return `
+    <rect x="${x}" y="258" width="${legW}" height="90" rx="12" fill="${pants}" ${stroke}/>
+    <clipPath id="leg-${uid}-${i}"><rect x="${x}" y="258" width="${legW}" height="90" rx="12"/></clipPath>
     <g clip-path="url(#leg-${uid}-${i})">
-      <rect x="${x + 16}" y="258" width="11" height="90" fill="${shade}" opacity="0.5"/>
+      <rect x="${x + legW - 11}" y="258" width="11" height="90" fill="${shade}" opacity="0.5"/>
       <rect x="${x + 2}" y="258" width="4" height="90" fill="${lighten(pants, 16)}" opacity="0.5"/>
     </g>`;
-  // full-width rounded shoe that overlaps the leg bottom (no pinched ankle);
-  // symmetric front-facing toe with a sole line.
+  };
+  // rounded shoe that overlaps the leg bottom, scaled to the leg width
+  const sw = legW * 0.56 + 3;
   const shoe = (cx: number) => `
-    <path d="M${cx - 15} 340 Q${cx - 17} 360 ${cx - 9} 367 Q${cx} 370 ${cx + 9} 367 Q${cx + 17} 360 ${cx + 15} 340 Z" fill="${shoes}" ${stroke}/>
-    <path d="M${cx - 14} 361 Q${cx} 366 ${cx + 14} 361" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
-    <path d="M${cx - 10} 348 Q${cx} 351 ${cx + 10} 348" fill="none" stroke="${lighten(shoes, 22)}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`;
-  return { left: `${leg(119, 0)}${shoe(132)}`, right: `${leg(154, 1)}${shoe(167)}` };
+    <path d="M${cx - sw} 340 Q${cx - sw - 2} 360 ${cx - sw * 0.6} 367 Q${cx} 370 ${cx + sw * 0.6} 367 Q${cx + sw + 2} 360 ${cx + sw} 340 Z" fill="${shoes}" ${stroke}/>
+    <path d="M${cx - sw + 1} 361 Q${cx} 366 ${cx + sw - 1} 361" fill="none" stroke="${OL}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    <path d="M${cx - sw * 0.66} 348 Q${cx} 351 ${cx + sw * 0.66} 348" fill="none" stroke="${lighten(shoes, 22)}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`;
+  return { left: `${leg(cxL, 0)}${shoe(cxL)}`, right: `${leg(cxR, 1)}${shoe(cxR)}` };
 };
 
 const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string; body: string } => {
   const p = c.colors.outfitPrimary;
   const skin = c.colors.skinTone;
-  const { shoulder, hip, female } = bodyGeom(c);
+  const { shoulder, hip, female, weight } = bodyGeom(c);
+  const wAdj = Math.round((weight - 1) * 12); // thicker limbs for heavier builds
   const sl = CX - shoulder, sr = CX + shoulder;
   const hl = CX - hip, hr = CX + hip;
 
@@ -141,9 +156,9 @@ const renderTorso = (c: AvatarConfig, uid: string): { armL: string; armR: string
 
   // Arms: fuller skin capsule hanging along the body, ending in a rounded
   // mitten hand; a short puffed sleeve caps the shoulder. Thicker for male.
-  const armSkin = female ? 14 : 17;
+  const armSkin = (female ? 14 : 17) + wAdj;
   const armOL = armSkin + 5;
-  const sleeveP = female ? 19 : 23;
+  const sleeveP = (female ? 19 : 23) + wAdj;
   const sleeveOL = sleeveP + 5;
   const arm = (dir: 1 | -1) => {
     const topX = CX + dir * (shoulder - 2);

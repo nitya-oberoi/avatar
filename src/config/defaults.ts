@@ -23,10 +23,14 @@ export const defaultColors: AvatarColors = {
 export const traitCatalog = {
   // Body types - base character shape
   bodies: [
-    { id: 'body_standard', name: 'Standard', icon: '👤' },
+    { id: 'body_petite', name: 'Petite', icon: '🧒' },
     { id: 'body_slim', name: 'Slim', icon: '🧘' },
+    { id: 'body_standard', name: 'Standard', icon: '👤' },
     { id: 'body_athletic', name: 'Athletic', icon: '💪' },
     { id: 'body_curvy', name: 'Curvy', icon: '🎪' },
+    { id: 'body_broad', name: 'Broad', icon: '🏋️' },
+    { id: 'body_plus', name: 'Plus', icon: '🧸' },
+    { id: 'body_round', name: 'Round', icon: '⛄' },
   ],
 
   // Head shapes - defines face structure

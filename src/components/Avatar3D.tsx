@@ -36,10 +36,14 @@ const HEAD_CHAR: Record<Gender, Record<string, string>> = {
 // Body-type → non-uniform scale on the whole avatar (shape + size). Applied to
 // both clones together so the grafted head stays aligned with the body.
 const BODY_SCALE: Record<string, [number, number, number]> = {
-  body_standard: [1, 1, 1],
+  body_petite: [0.85, 0.9, 0.85],
   body_slim: [0.9, 1.02, 0.9],
+  body_standard: [1, 1, 1],
   body_athletic: [1.09, 1.0, 1.0],
   body_curvy: [1.13, 0.98, 1.08],
+  body_broad: [1.18, 1.0, 1.05],
+  body_plus: [1.2, 1.0, 1.16],
+  body_round: [1.3, 0.98, 1.22],
 };
 const DEFAULT_CHAR: Record<Gender, string> = { male: 'Casual_2', female: 'Casual' };
 const ALL_CHARS: Record<Gender, string[]> = {
