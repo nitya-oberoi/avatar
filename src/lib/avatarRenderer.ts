@@ -451,6 +451,44 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       const fsheen = `<path d="${scallop(CX - 20, 60, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: tail, front: `${fringe}${fsheen}` };
     }
+    case 'hair_crew': {
+      // neat short rounded crew cut.
+      const s = `<path d="M84 98 C80 56 106 44 150 44 C194 44 220 56 216 98 C208 78 186 72 150 76 C114 72 92 78 84 98 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M108 60 Q150 50 192 62" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
+      return { back: '', front: `${s}${hi}` };
+    }
+    case 'hair_quiff': {
+      // short sides + a swept tuft lifted at the front-centre.
+      const base = `<path d="M84 100 C80 58 106 46 150 46 C194 46 220 58 216 100 C210 80 188 74 150 78 C112 74 90 80 84 100 Z" fill="${col}" ${stroke}/>`;
+      const tuft = `<path d="M114 60 Q122 20 152 28 Q186 22 178 58 Q150 46 114 60 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M128 46 Q152 36 172 48" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
+      return { back: '', front: `${base}${tuft}${hi}` };
+    }
+    case 'hair_fauxhawk': {
+      // short sides + a raised spiky ridge down the centre.
+      const base = `<path d="M86 100 C82 60 108 48 150 48 C192 48 218 60 214 100 C208 80 186 74 150 78 C114 74 92 80 86 100 Z" fill="${col}" ${stroke}/>`;
+      const ridge = `<path d="M130 60 L136 16 L145 46 L152 12 L159 46 L168 16 L174 60 Q150 52 130 60 Z" fill="${col}" ${stroke}/>`;
+      return { back: '', front: `${base}${ridge}` };
+    }
+    case 'hair_tousled': {
+      // messy, tufted, slightly swept short hair.
+      const s = `<path d="M78 104 Q72 56 98 44 Q96 32 116 42 Q120 28 140 42 Q150 30 168 44 Q182 34 196 50 Q214 48 222 74 Q228 92 224 104 Q214 80 192 82 Q204 64 182 66 Q192 52 166 62 Q176 48 150 58 Q118 48 98 70 Q86 64 78 104 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M108 58 Q136 44 166 56" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
+      return { back: '', front: `${s}${hi}` };
+    }
+    case 'hair_swoop': {
+      // big side-swept fringe sweeping across the forehead.
+      const base = `<path d="M76 102 C66 50 96 34 150 34 C206 36 228 56 222 104 C214 80 190 72 154 82 C120 92 94 92 76 102 Z" fill="${col}" ${stroke}/>`;
+      const swoop = `<path d="M104 46 Q168 40 216 92 Q198 70 166 70 Q136 66 114 84 Q100 66 104 46 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M120 52 Q160 50 196 78" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
+      return { back: '', front: `${base}${swoop}${hi}` };
+    }
+    case 'hair_shaggy': {
+      // longer messy shag with pointy fringe ends, covering the ears.
+      const s = `<path d="M72 110 Q66 60 78 44 Q92 30 116 40 Q130 26 150 38 Q170 26 186 42 Q208 34 220 56 Q232 74 228 110 Q222 90 210 92 L204 108 Q192 90 184 104 L178 88 Q166 96 158 108 L152 90 Q140 98 132 108 L126 90 Q112 96 106 108 L100 90 Q86 92 82 106 Q76 92 72 110 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M96 56 Q140 42 190 58" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
+      return { back: '', front: `${s}${hi}` };
+    }
     default: return { back: back(112, 128), front: cap };
   }
 };

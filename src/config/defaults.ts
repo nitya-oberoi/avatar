@@ -61,6 +61,12 @@ export const traitCatalog = {
     { id: 'hair_undercut', name: 'Undercut', icon: '🔻' },
     { id: 'hair_curly_bob', name: 'Curly Bob', icon: '🎶' },
     { id: 'hair_curly_pony', name: 'Curly Pony', icon: '🎐' },
+    { id: 'hair_crew', name: 'Crew Cut', icon: '🧑' },
+    { id: 'hair_quiff', name: 'Quiff', icon: '🔼' },
+    { id: 'hair_fauxhawk', name: 'Faux Hawk', icon: '🦔' },
+    { id: 'hair_tousled', name: 'Tousled', icon: '💨' },
+    { id: 'hair_swoop', name: 'Swoop', icon: '🌊' },
+    { id: 'hair_shaggy', name: 'Shaggy', icon: '🧹' },
   ],
 
   // Outfit options - complete looks
