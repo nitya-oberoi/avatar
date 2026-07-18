@@ -56,6 +56,11 @@ export const traitCatalog = {
     { id: 'hair_topknot', name: 'Top Knot', icon: '🌰' },
     { id: 'hair_curly_long', name: 'Long Curls', icon: '🌀' },
     { id: 'hair_ringlets', name: 'Ringlets', icon: '💫' },
+    { id: 'hair_bangs', name: 'Bangs', icon: '💇' },
+    { id: 'hair_sidepart', name: 'Side Part', icon: '💠' },
+    { id: 'hair_undercut', name: 'Undercut', icon: '🔻' },
+    { id: 'hair_curly_bob', name: 'Curly Bob', icon: '🎶' },
+    { id: 'hair_curly_pony', name: 'Curly Pony', icon: '🎐' },
   ],
 
   // Outfit options - complete looks

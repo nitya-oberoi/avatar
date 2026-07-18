@@ -417,6 +417,40 @@ const renderHair = (c: AvatarConfig): HairLayers => {
       const fsheen = `<path d="${scallop(CX - 20, 58, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
       return { back: mass, front: `${fringe}${fsheen}` };
     }
+    case 'hair_bangs': {
+      // straight blunt fringe (flat bottom) + medium length behind.
+      const w = browW + 3;
+      const bangs = `<path d="M${CX - w} 90 C${CX - w - 2} ${topY + 2} ${CX - w * 0.5} ${topY - 14} ${CX} ${topY - 14} C${CX + w * 0.5} ${topY - 14} ${CX + w + 2} ${topY + 2} ${CX + w} 90 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M${CX - w * 0.5} ${topY - 2} Q${CX - w * 0.1} ${topY - 10} ${CX + w * 0.2} ${topY - 8}" fill="none" stroke="${lighten(col, 20)}" stroke-width="5" stroke-linecap="round" opacity="0.5"/>`;
+      return { back: back(90, 116), front: `${bangs}${hi}` };
+    }
+    case 'hair_sidepart': {
+      // full swept-over top; fringe sweeps low on the right, part on the left.
+      const shape = `<path d="M76 102 C68 50 96 34 150 32 C204 34 226 54 222 104 C216 80 192 72 168 84 Q150 60 118 88 C102 76 84 82 76 102 Z" fill="${col}" ${stroke}/>`;
+      const part = `<path d="M122 42 Q114 66 110 90" fill="none" stroke="${darken(col, 18)}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`;
+      const hi = `<path d="M138 50 Q170 44 198 62" fill="none" stroke="${lighten(col, 16)}" stroke-width="4" stroke-linecap="round" opacity="0.4"/>`;
+      return { back: '', front: `${shape}${part}${hi}` };
+    }
+    case 'hair_undercut': {
+      // shaved sides, tall swept quiff on the crown.
+      const top = `<path d="M92 70 C82 26 124 20 152 20 C186 20 220 34 208 72 C200 50 178 46 158 56 Q150 40 122 52 Q108 44 100 62 C97 56 94 64 92 70 Z" fill="${col}" ${stroke}/>`;
+      const hi = `<path d="M120 42 Q152 30 186 48" fill="none" stroke="${lighten(col, 18)}" stroke-width="4" stroke-linecap="round" opacity="0.45"/>`;
+      return { back: '', front: `${top}${hi}` };
+    }
+    case 'hair_curly_bob': {
+      // chin-length curly bob with bumpy edges + curly fringe.
+      const mass = `<path d="M76 96 Q62 116 74 138 Q66 156 90 162 Q120 170 150 166 Q180 170 210 162 Q234 156 226 138 Q238 116 224 96 Q224 40 150 32 Q76 40 76 96 Z" fill="${col}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 66, 62, 30, 9)}" fill="${col}"/>`;
+      const fsheen = `<path d="${scallop(CX - 22, 60, 30, 22, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      return { back: mass, front: `${fringe}${fsheen}` };
+    }
+    case 'hair_curly_pony': {
+      // curly fringe + a bumpy (curly) ponytail hanging to the side.
+      const tail = `<path d="M182 62 Q236 92 230 138 Q246 168 224 190 Q238 210 214 224 Q228 202 214 184 Q226 160 206 144 Q216 118 190 106 Z" fill="${col}" ${stroke}/><rect x="176" y="56" width="16" height="9" rx="4" fill="${darken(col, 20)}" ${stroke}/>`;
+      const fringe = `<path d="${scallop(CX, 66, 60, 28, 9)}" fill="${col}"/>`;
+      const fsheen = `<path d="${scallop(CX - 20, 60, 28, 20, 6)}" fill="${lighten(col, 16)}" opacity="0.45"/>`;
+      return { back: tail, front: `${fringe}${fsheen}` };
+    }
     default: return { back: back(112, 128), front: cap };
   }
 };
