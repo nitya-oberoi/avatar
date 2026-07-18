@@ -49,10 +49,11 @@ const rig = (c: AvatarConfig, uid: string, hair: HairLayers): string => {
       ${hair.back}
       <g class="avp-legL">${legs.left}</g>
       <g class="avp-legR">${legs.right}</g>
-      <g class="avp-armL">${torso.armL}</g>
-      <g class="avp-armR">${torso.armR}</g>
-      <g class="avp-body">${torso.body}${renderNeck(c)}</g>
+      <g class="avp-armL">${torso.armL}${renderArmAccL(c)}</g>
+      <g class="avp-armR">${torso.armR}${renderArmAccR(c)}</g>
+      <g class="avp-body">${torso.body}${renderNeck(c)}${renderBodyAccessories(c)}</g>
       <g class="avp-head">${renderEars(c)}${renderHead(c)}${renderFaceShadow(c, uid)}${renderFace(c)}${hair.front}${renderAccessories(c)}</g>
+      ${renderPet(c)}
     </g>`;
 };
 
@@ -760,10 +761,16 @@ const facePreview = (c: AvatarConfig, gid: string, viewBox: string, extra = ''):
 export const renderExpressionThumbnail = (exprId: string, colors: AvatarColors): string =>
   facePreview(thumbBase({ expression: exprId }, colors), `hg-exp-${exprId}`, '54 8 192 192');
 
-// Accessory preview: a head wearing the given accessory (hats/glasses/etc.).
+// Accessory preview: head items show on a face; body/held items show on a
+// mini full avatar so backpacks, swords, and the pet are actually visible.
+const HEAD_ACCS = new Set([
+  'acc_glasses', 'acc_sunglasses', 'acc_goggles', 'acc_hat', 'acc_cap',
+  'acc_beanie', 'acc_crown', 'acc_tiara', 'acc_helmet', 'acc_earrings', 'acc_necklace',
+]);
 export const renderAccessoryThumbnail = (accId: string, colors: AvatarColors): string => {
   const c = thumbBase({ accessories: [accId] }, colors);
-  return facePreview(c, `hg-acc-${accId}`, '48 0 204 204', renderAccessories(c));
+  if (HEAD_ACCS.has(accId)) return facePreview(c, `hg-acc-${accId}`, '48 0 204 204', renderAccessories(c));
+  return renderAvatarSVG(c, 96);
 };
 
 // Body preview: the whole avatar, showing the body proportions.
@@ -834,7 +841,94 @@ const renderAccessories = (c: AvatarConfig): string => {
     out += `<path d="M136 184 Q150 198 164 184" fill="none" stroke="${a}" stroke-width="3.5"/>
             <circle cx="${CX}" cy="197" r="5" fill="${a}" ${stroke}/>`;
   }
+  if (has('acc_helmet')) {
+    out += `<path d="M88 96 Q84 18 150 14 Q216 18 212 96 L196 96 Q194 40 150 38 Q106 40 104 96 Z" fill="${a}" ${stroke}/>
+            <path d="M100 92 Q150 78 200 92" fill="none" stroke="${darken(a, 18)}" stroke-width="5" stroke-linecap="round"/>
+            <path d="M112 34 Q140 22 168 30" fill="none" stroke="${lighten(a, 22)}" stroke-width="5" stroke-linecap="round" opacity="0.6"/>`;
+  }
   return out;
+};
+
+// Body-worn accessories (drawn over the shirt, in the body group).
+const renderBodyAccessories = (c: AvatarConfig): string => {
+  const a = c.colors.accentColor;
+  const has = (id: string) => c.selection.accessories.includes(id);
+  const { shoulder } = bodyGeom(c);
+  const sl = CX - shoulder, sr = CX + shoulder;
+  let out = '';
+  if (has('acc_backpack')) {
+    out += `
+      <ellipse cx="${sl - 4}" cy="222" rx="10" ry="26" fill="${darken(a, 10)}" ${stroke}/>
+      <ellipse cx="${sr + 4}" cy="222" rx="10" ry="26" fill="${darken(a, 10)}" ${stroke}/>
+      <path d="M${sl + 10} 186 L${CX - 8} 252 M${sr - 10} 186 L${CX + 8} 252" fill="none" stroke="${a}" stroke-width="8" stroke-linecap="round"/>
+      <path d="M${sl + 10} 186 L${CX - 8} 252 M${sr - 10} 186 L${CX + 8} 252" fill="none" stroke="${darken(a, 20)}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>`;
+  }
+  if (has('acc_scarf')) {
+    out += `
+      <path d="M132 172 Q150 186 168 172 L168 186 Q150 200 132 186 Z" fill="${a}" ${stroke}/>
+      <path d="M144 188 L140 226 Q150 234 158 226 L154 188 Z" fill="${darken(a, 10)}" ${stroke}/>
+      <path d="M141 218 L157 218" stroke="${darken(a, 22)}" stroke-width="2.5" opacity="0.6"/>`;
+  }
+  if (has('acc_bag')) {
+    out += `
+      <path d="M${sl + 8} 188 L${sr - 2} 246" fill="none" stroke="${darken(a, 12)}" stroke-width="6" stroke-linecap="round"/>
+      <rect x="${sr - 18}" y="240" width="32" height="24" rx="7" fill="${a}" ${stroke}/>
+      <path d="M${sr - 12} 246 L${sr + 8} 246" stroke="${darken(a, 20)}" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  return out;
+};
+
+// Left-hand accessories: watch on the wrist, staff held in the hand.
+const renderArmAccL = (c: AvatarConfig): string => {
+  const a = c.colors.accentColor;
+  const has = (id: string) => c.selection.accessories.includes(id);
+  const { shoulder } = bodyGeom(c);
+  const handX = CX - (shoulder + 6);
+  let out = '';
+  if (has('acc_staff')) {
+    out += `
+      <rect x="${handX - 3}" y="158" width="7" height="118" rx="3.5" fill="#7a5230" ${stroke}/>
+      <circle cx="${handX}" cy="152" r="11" fill="${a}" ${stroke}/>
+      <circle cx="${handX - 3}" cy="148" r="3.5" fill="#ffffff" opacity="0.8"/>`;
+  }
+  if (has('acc_watch')) {
+    out += `
+      <rect x="${handX - 9}" y="238" width="18" height="9" rx="4" fill="${a}" ${stroke}/>
+      <circle cx="${handX}" cy="242" r="5.5" fill="#f2f2f2" stroke="${OL}" stroke-width="2"/>`;
+  }
+  return out;
+};
+
+// Right-hand accessories: a held sword (rides in the arm group, so it swings).
+const renderArmAccR = (c: AvatarConfig): string => {
+  const has = (id: string) => c.selection.accessories.includes(id);
+  if (!has('acc_sword')) return '';
+  const { shoulder } = bodyGeom(c);
+  const handX = CX + (shoulder + 6);
+  return `
+    <path d="M${handX - 3} 244 L${handX + 26} 168 L${handX + 34} 172 L${handX + 7} 248 Z" fill="#cfd8e3" ${stroke}/>
+    <path d="M${handX + 24} 174 L${handX + 30} 177" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+    <path d="M${handX - 8} 240 L${handX + 12} 250" stroke="#8a5a2b" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="${handX + 2}" cy="245" r="4" fill="#f6c445" ${stroke}/>`;
+};
+
+// A little companion dog standing by the avatar's feet (root group).
+const renderPet = (c: AvatarConfig): string => {
+  if (!c.selection.accessories.includes('acc_pet')) return '';
+  const x = 232, y = 336;
+  const fur = '#c98d4b';
+  return `
+    <ellipse cx="${x}" cy="${y + 14}" rx="24" ry="6" fill="#000" opacity="0.08"/>
+    <path d="M${x - 18} ${y - 2} Q${x - 24} ${y - 22} ${x - 8} ${y - 20} L${x + 12} ${y - 20} Q${x + 22} ${y - 18} ${x + 20} ${y - 4} L${x + 18} ${y + 8} Q${x} ${y + 14} ${x - 16} ${y + 8} Z" fill="${fur}" ${stroke}/>
+    <circle cx="${x + 16}" cy="${y - 24}" r="13" fill="${fur}" ${stroke}/>
+    <path d="M${x + 6} ${y - 34} L${x + 10} ${y - 22} L${x + 16} ${y - 32} Z" fill="${darken(fur, 15)}" ${stroke}/>
+    <path d="M${x + 26} ${y - 34} L${x + 22} ${y - 22} L${x + 30} ${y - 30} Z" fill="${darken(fur, 15)}" ${stroke}/>
+    <circle cx="${x + 13}" cy="${y - 26}" r="2" fill="#1a1512"/>
+    <circle cx="${x + 21}" cy="${y - 26}" r="2" fill="#1a1512"/>
+    <circle cx="${x + 17}" cy="${y - 20}" r="2.6" fill="#1a1512"/>
+    <path d="M${x - 20} ${y - 6} Q${x - 30} ${y - 14} ${x - 26} ${y - 22}" fill="none" stroke="${fur}" stroke-width="5" stroke-linecap="round"/>
+    <rect x="${x - 14}" y="${y + 6}" width="7" height="10" rx="3" fill="${fur}" ${stroke}/>
+    <rect x="${x + 8}" y="${y + 6}" width="7" height="10" rx="3" fill="${fur}" ${stroke}/>`;
 };
 
 /* ------------------------------- utils --------------------------- */
