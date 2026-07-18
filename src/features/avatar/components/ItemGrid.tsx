@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAvatarStore } from '@stores/avatarStore';
 import type { AvatarSelection } from '@apptypes/avatar';
+import { renderHairThumbnail } from '@lib/avatarRenderer';
 import { isUnlocked, priceOf, type AvatarSlot } from '@/avatar-core';
 import { appCatalog } from '../application/avatarCatalog';
 import styles from './creator.module.css';
@@ -14,12 +15,14 @@ interface Props {
 
 export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
   const config = useAvatarStore((s) => s.config);
+  const hairColor = useAvatarStore((s) => s.config.colors.hairColor);
   const selectTrait = useAvatarStore((s) => s.selectTrait);
   const addAccessory = useAvatarStore((s) => s.addAccessory);
   const removeAccessory = useAvatarStore((s) => s.removeAccessory);
 
   const items = appCatalog.bySlot[slot] ?? [];
   const isAccessories = slot === 'accessories';
+  const isHair = slot === 'hair';
   const selectedIds = isAccessories
     ? config.selection.accessories
     : [config.selection[slot as SingleSlot]];
@@ -48,7 +51,15 @@ export const ItemGrid: React.FC<Props> = ({ slot, unlockedIds }) => {
             onClick={() => (locked ? undefined : pick(it.id))}
             title={locked ? `${it.name} — locked` : it.name}
           >
-            <span aria-hidden>{it.icon ?? '◇'}</span>
+            {isHair ? (
+              <span
+                className={styles.thumb}
+                aria-hidden
+                dangerouslySetInnerHTML={{ __html: renderHairThumbnail(it.id, hairColor) }}
+              />
+            ) : (
+              <span aria-hidden>{it.icon ?? '◇'}</span>
+            )}
             <span className={styles.cardName}>{it.name}</span>
             {selected && <span className={styles.check} aria-hidden>✓</span>}
             {it.isPremium && !locked && <span className={styles.gem} aria-hidden>💎</span>}
